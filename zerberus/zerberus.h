@@ -23,7 +23,7 @@
 
 class Voice;
 class Channel;
-class Instrument;
+class ZInstrument;
 enum class Trigger;
 enum class MidiEventType : unsigned char;
 
@@ -98,17 +98,16 @@ class MidiEventFifo {
 class Zerberus : public Synthesizer {
       static bool initialized;
 
-      int silentBlocks = 0;
-
       std::atomic<bool> busy;
 
-      std::list<Instrument*> instruments;
+      std::list<ZInstrument*> instruments;
       Channel* _channel[MAX_CHANNEL];
 
       int allocatedVoices = 0;
       VoiceFifo freeVoices;
       Voice* activeVoices = 0;
       MidiEventFifo midiEvents;
+      int _loadProgress = 0;
 
       void programChange(int channel, int program);
       void trigger(Channel*, int key, int velo, Trigger);
@@ -119,30 +118,38 @@ class Zerberus : public Synthesizer {
       Zerberus();
       ~Zerberus();
 
-      virtual void process(int frames, float*);
+      virtual void process(unsigned frames, float*, float*, float*);
       virtual void process(const MidiEvent& event);
       virtual void play(const MidiEvent& event);
+
       bool loadInstrument(const QString&);
 
-      Instrument* instrument(int program) const;
+      ZInstrument* instrument(int program) const;
       Voice* getActiveVoices() { return activeVoices; }
       Channel* channel(int n)  { return _channel[n]; }
+
+      int loadProgress() { return _loadProgress; }
+      void setLoadProgress(int loadProgress) { _loadProgress = loadProgress; }
 
       static double ct2hz(float c) { return 8.176 * pow(2.0, (double)c / 1200.0); }
 
       virtual const char* name() const;
-      virtual bool loadSoundFonts(const QStringList&);
-      virtual QStringList soundFonts() const;
-      virtual void process(unsigned, float*, float);
       virtual void play(const Event&);
       virtual const QList<MidiPatch*>& getPatchInfo() const;
-      virtual SyntiState state() const;
-      virtual void setState(SyntiState&);
-      virtual void init();
+
+      virtual SynthesizerGroup state() const;
+      virtual void setState(const SynthesizerGroup&);
+
       virtual void allSoundsOff(int channel);
       virtual void allNotesOff(int channel);
+
       virtual bool addSoundFont(const QString&);
       virtual bool removeSoundFont(const QString&);
+      virtual bool loadSoundFonts(const QStringList&);
+      virtual QStringList soundFonts() const;
+
+      virtual SynthesizerGui* gui();
+      QFileInfoList sfzFiles();
       };
 
 #endif

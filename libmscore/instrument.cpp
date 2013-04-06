@@ -1,7 +1,6 @@
 //=============================================================================
 //  MuseScore
 //  Music Composition & Notation
-//  $Id: instrument.cpp 5149 2011-12-29 08:38:43Z wschweer $
 //
 //  Copyright (C) 2008-2011 Werner Schweer
 //
@@ -18,8 +17,11 @@
 #include "utils.h"
 #include "tablature.h"
 #include "instrtemplate.h"
+#include "synthesizer/msynthesizer.h"
+#include "mscore.h"
 
 Instrument InstrumentList::defaultInstrument;
+extern MasterSynthesizer* synti;
 
 //---------------------------------------------------------
 //   write
@@ -328,7 +330,7 @@ Channel::Channel()
       {
       for(int i = 0; i < A_INIT_COUNT; ++i)
             init.append(0);
-      synti    = 0;     // -1;
+      synti    = "Fluid";     // default synthesizer
       channel  = -1;
       program  = -1;
       bank     = 0;
@@ -375,10 +377,9 @@ void Channel::write(Xml& xml) const
 
             e.write(xml);
             }
-      if (synti == 1)                    // HACK
-            xml.tag("synti", "Aeolus");
-      else if (synti == 2)
-            xml.tag("synti", "Zerberus");
+      if (!MScore::testMode)
+            // xml.tag("synti", ::synti->name(synti));
+            xml.tag("synti", synti);
       if (mute)
             xml.tag("mute", mute);
       if (solo)
@@ -396,7 +397,7 @@ void Channel::write(Xml& xml) const
 
 void Channel::read(XmlReader& e)
       {
-      synti = 0;
+      // synti = 0;
       name = e.attribute("name");
       while (e.readNextStartElement()) {
             const QStringRef& tag(e.name());
@@ -454,12 +455,8 @@ void Channel::read(XmlReader& e)
                   }
             else if (tag == "synti") {
                   QString s = e.readElementText();
-                  if (s == "Aeolus")
-                        synti = 1;
-                  else if (s == "Zerberus")
-                        synti = 2;
-                  else
-                        synti = 0;
+                  // synti = ::synti->index(s);
+                  synti = s;
                   }
             else if (tag == "descr")
                   descr = e.readElementText();

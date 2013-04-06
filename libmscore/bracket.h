@@ -1,7 +1,6 @@
 //=============================================================================
 //  MuseScore
 //  Music Composition & Notation
-//  $Id: bracket.h 5149 2011-12-29 08:38:43Z wschweer $
 //
 //  Copyright (C) 2002-2011 Werner Schweer
 //
@@ -38,7 +37,6 @@ class Bracket : public Element {
       int _lastStaff;
 
       QPainterPath path;
-      qreal yoff;
 
    public:
       Bracket(Score*);

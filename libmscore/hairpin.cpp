@@ -1,7 +1,6 @@
 //=============================================================================
 //  MuseScore
 //  Music Composition & Notation
-//  $Id: hairpin.cpp 5305 2012-02-09 12:09:20Z wschweer $
 //
 //  Copyright (C) 2002-2011 Werner Schweer
 //
@@ -93,6 +92,33 @@ void HairpinSegment::draw(QPainter* painter) const
       painter->setPen(pen);
       painter->drawLine(l1);
       painter->drawLine(l2);
+      }
+
+//---------------------------------------------------------
+//   getProperty
+//---------------------------------------------------------
+
+QVariant HairpinSegment::getProperty(P_ID id) const
+      {
+      return hairpin()->getProperty(id);
+      }
+
+//---------------------------------------------------------
+//   setProperty
+//---------------------------------------------------------
+
+bool HairpinSegment::setProperty(P_ID id, const QVariant& v)
+      {
+      return hairpin()->setProperty(id, v);
+      }
+
+//---------------------------------------------------------
+//   propertyDefault
+//---------------------------------------------------------
+
+QVariant HairpinSegment::propertyDefault(P_ID id) const
+      {
+      return hairpin()->propertyDefault(id);
       }
 
 //---------------------------------------------------------
@@ -235,24 +261,26 @@ bool Hairpin::setProperty(P_ID id, const QVariant& v)
       }
 
 //---------------------------------------------------------
-//   setYoff
-//---------------------------------------------------------
-
-void Hairpin::setYoff(qreal val)
-      {
-      rUserYoffset() += (val - score()->styleS(ST_hairpinY).val()) * spatium();
-      }
-
-//---------------------------------------------------------
 //   propertyDefault
 //---------------------------------------------------------
 
 QVariant Hairpin::propertyDefault(P_ID id) const
       {
       switch(id) {
+            case P_HAIRPIN_TYPE:  return HairpinType::CRESCENDO;
+            case P_VELO_CHANGE:   return 10;
             case P_DYNAMIC_RANGE: return DYNAMIC_PART;
             default:              return SLine::propertyDefault(id);
             }
+      }
+
+//---------------------------------------------------------
+//   setYoff
+//---------------------------------------------------------
+
+void Hairpin::setYoff(qreal val)
+      {
+      rUserYoffset() += (val - score()->styleS(ST_hairpinY).val()) * spatium();
       }
 
 

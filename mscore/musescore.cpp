@@ -85,9 +85,21 @@
 #include "libmscore/volta.h"
 #include "libmscore/lasso.h"
 #include "textpalette.h"
+#include "driver.h"
 
+#include "effects/freeverb/freeverb.h"
+#include "effects/zita1/zita.h"
+#include "effects/noeffect/noeffect.h"
 #include "synthesizer/synthesizer.h"
-#include "libmscore/msynthesizer.h"
+#include "synthesizer/synthesizergui.h"
+#include "synthesizer/msynthesizer.h"
+#include "fluid/fluid.h"
+#ifdef AEOLUS
+#include "aeolus/aeolus/aeolus.h"
+#endif
+#ifdef ZERBERUS
+#include "zerberus/zerberus.h"
+#endif
 
 MuseScore* mscore;
 MuseScoreCore* mscoreCore;
@@ -201,8 +213,6 @@ static const int RECENT_LIST_SIZE = 10;
 
 void MuseScore::closeEvent(QCloseEvent* ev)
       {
-      if (cs)
-            cs->setSyntiState(synti->state());
       unloadPlugins();
       QList<Score*> removeList;
       foreach(Score* score, scoreList) {
@@ -258,8 +268,10 @@ void MuseScore::closeEvent(QCloseEvent* ev)
       if (playPanel)
             preferences.playPanelPos = playPanel->pos();
 
-      if (synthControl)
+      if (synthControl) {
             synthControl->updatePreferences();
+            synthControl->writeSettings();
+            }
 
       writeSettings();
       if (debugger)
@@ -360,7 +372,7 @@ MuseScore::MuseScore()
       measuresDialog        = 0;
       insertMeasuresDialog  = 0;
       masterPalette         = 0;
-      iledit                = 0;
+      mixer                 = 0;
       synthControl          = 0;
       debugger              = 0;
       measureListEdit       = 0;
@@ -1387,12 +1399,6 @@ void MuseScore::setCurrentView(int tabIdx, int idx)
 
 void MuseScore::setCurrentScoreView(ScoreView* view)
       {
-      //
-      // save current synthesizer setting to score
-      //
-      if (cs)
-            cs->setSyntiState(synti->state());
-
       cv = view;
       if (cv) {
             if (cv->score() && (cs != cv->score()))
@@ -1411,8 +1417,8 @@ void MuseScore::setCurrentScoreView(ScoreView* view)
             playPanel->setScore(cs);
       if (synthControl)
             synthControl->setScore(cs);
-      if (iledit)
-            iledit->updateAll(cs);
+      if (mixer)
+            mixer->updateAll(cs);
 #ifdef OMR
       if (omrPanel) {
             if (cv && cv->omrView())
@@ -1583,13 +1589,13 @@ void MuseScore::showPlayPanel(bool visible)
             if (!visible)
                   return;
             playPanel = new PlayPanel(this);
-            connect(playPanel, SIGNAL(gainChange(float)),    seq, SLOT(setGain(float)));
+            connect(playPanel, SIGNAL(gainChange(float)),     synti, SLOT(setGain(float)));
             connect(playPanel, SIGNAL(relTempoChanged(double)),seq, SLOT(setRelTempo(double)));
             connect(playPanel, SIGNAL(posChange(int)),         seq, SLOT(seek(int)));
             connect(playPanel, SIGNAL(closed()),                 SLOT(closePlayPanel()));
-            connect(seq,       SIGNAL(gainChanged(float)), playPanel, SLOT(setGain(float)));
+            connect(synti,     SIGNAL(gainChanged(float)), playPanel, SLOT(setGain(float)));
 
-            playPanel->setGain(seq->gain());
+            playPanel->setGain(synti->gain());
             playPanel->setScore(cs);
             playPanel->move(preferences.playPanelPos);
             }
@@ -2142,6 +2148,50 @@ static void mscoreMessageHandler(QtMsgType type, const char *msg)
 #endif
 
 //---------------------------------------------------------
+//   synthesizerFactory
+//    create and initialize the master synthesizer
+//---------------------------------------------------------
+
+MasterSynthesizer* synthesizerFactory()
+      {
+      MasterSynthesizer* ms = new MasterSynthesizer();
+      ms->setMasterTuning(preferences.tuning);
+      ms->setGain(preferences.masterGain);
+
+      FluidS::Fluid* fluid = new FluidS::Fluid();
+      ms->registerSynthesizer(fluid);
+      if (!preferences.defaultSf.isEmpty()) {
+            QStringList sfl;
+            sfl.append(preferences.defaultSf);
+            fluid->loadSoundFonts(sfl);
+            fluid->gui()->synthesizerChanged();
+            }
+
+#ifdef AEOLUS
+      ms->registerSynthesizer(new Aeolus());
+#endif
+#ifdef ZERBERUS
+      Zerberus* zerberus = new Zerberus();
+      ms->registerSynthesizer(zerberus);
+      if (!preferences.defaultSfz.isEmpty()) {
+            QStringList sfz;
+            sfz.append(preferences.defaultSfz);
+            zerberus->loadSoundFonts(sfz);
+            zerberus->gui()->synthesizerChanged();
+            }
+#endif
+      ms->registerEffect(0, new NoEffect);
+      ms->registerEffect(0, new ZitaReverb);
+      ms->registerEffect(0, new Freeverb);
+      ms->registerEffect(1, new NoEffect);
+      ms->registerEffect(1, new ZitaReverb);
+      ms->registerEffect(1, new Freeverb);
+      ms->setEffect(0, 1);
+      ms->setEffect(1, 0);
+      return ms;
+      }
+
+//---------------------------------------------------------
 //   main
 //---------------------------------------------------------
 
@@ -2165,6 +2215,9 @@ int main(int argc, char* av[])
       QCoreApplication::setOrganizationName("MuseScore");
       QCoreApplication::setOrganizationDomain("musescore.org");
       QCoreApplication::setApplicationName("MuseScoreDevelopment");
+      Q_INIT_RESOURCE(zita);
+      Q_INIT_RESOURCE(noeffect);
+      Q_INIT_RESOURCE(freeverb);
 
 #ifndef Q_WS_MAC
       // Save the preferences in QSettings::NativeFormat
@@ -2374,10 +2427,18 @@ int main(int argc, char* av[])
                   case STYLE_NATIVE:
                         break;
                   }
+            seq                = new Seq();
+            MScore::seq        = seq;
+            Driver* driver     = driverFactory(seq);
+            synti              = synthesizerFactory();
+            MScore::sampleRate = driver->sampleRate();
+            synti->setSampleRate(MScore::sampleRate);
+
+            seq->setDriver(driver);
+            seq->setMasterSynthesizer(synti);
             }
-      synti = new MasterSynthesizer();
-      seq   = new Seq();
-      MScore::seq = seq;
+      else
+            noSeq = true;
 
       //
       // avoid font problems by overriding the environment
@@ -2653,7 +2714,7 @@ void MuseScore::changeState(ScoreState val)
             else if (strcmp(s->key(), "copy") == 0)
                   a->setEnabled(cs && cs->selection().state());
             else if (strcmp(s->key(), "synth-control") == 0) {
-                  Driver* driver = seq ? seq->getDriver() : 0;
+                  Driver* driver = seq ? seq->driver() : 0;
                   // a->setEnabled(driver && driver->getSynth());
                   if (MScore::debugMode)
                         qDebug("disable synth control");
@@ -2729,6 +2790,9 @@ void MuseScore::changeState(ScoreState val)
             case STATE_LYRICS_EDIT:
                   showModeText(tr("lyrics edit mode"));
                   break;
+            case STATE_HARMONY_FIGBASS_EDIT:
+                  showModeText(tr("chords/fig.bass edit mode"));
+                  break;
             case STATE_PLAY:
                   showModeText(tr("play"));
                   break;
@@ -2783,7 +2847,7 @@ void MuseScore::changeState(ScoreState val)
       _sstate = val;
 
       Element* e = 0;
-      if (_sstate == STATE_LYRICS_EDIT || _sstate == STATE_TEXT_EDIT
+      if (_sstate == STATE_LYRICS_EDIT || _sstate == STATE_TEXT_EDIT || _sstate == STATE_HARMONY_FIGBASS_EDIT
          || _sstate == STATE_EDIT) {
             if (cv)
                   e = cv->getEditObject();
@@ -3116,6 +3180,7 @@ void MuseScore::undo()
       {
       if (_sstate == STATE_EDIT
          || _sstate == STATE_LYRICS_EDIT
+         || _sstate == STATE_HARMONY_FIGBASS_EDIT
          || _sstate == STATE_TEXT_EDIT) {
             cv->postCmd("escape");
             qApp->processEvents();
@@ -3149,6 +3214,7 @@ void MuseScore::redo()
       {
       if (_sstate == STATE_EDIT
          || _sstate == STATE_TEXT_EDIT
+         || _sstate == STATE_HARMONY_FIGBASS_EDIT
          || _sstate == STATE_LYRICS_EDIT) {
             cv->postCmd("escape");
             qApp->processEvents();
@@ -3585,6 +3651,7 @@ const char* stateName(ScoreState s)
             case STATE_EDIT:               return "STATE_EDIT";
             case STATE_TEXT_EDIT:          return "STATE_TEXT_EDIT";
             case STATE_LYRICS_EDIT:        return "STATE_LYRICS_EDIT";
+            case STATE_HARMONY_FIGBASS_EDIT: return "STATE_HARMONY_FIGBASS_EDIT";
             case STATE_PLAY:               return "STATE_PLAY";
             case STATE_SEARCH:             return "STATE_SEARCH";
             case STATE_FOTO:               return "STATE_FOTO";
@@ -4181,8 +4248,8 @@ void MuseScore::cmd(QAction* a, const QString& cmd)
       {
       if (cmd == "instruments") {
             editInstrList();
-            if (iledit)
-                  iledit->updateAll(cs);
+            if (mixer)
+                  mixer->updateAll(cs);
             }
       else if (cmd == "rewind") {
             seq->rewindStart();
@@ -4213,18 +4280,12 @@ void MuseScore::cmd(QAction* a, const QString& cmd)
             exportParts();
       else if (cmd == "file-close")
             closeScore(cs);
-      else if (cmd == "file-save-as") {
-            cs->setSyntiState(synti->state());
+      else if (cmd == "file-save-as")
             saveAs(cs, false);
-            }
-      else if (cmd == "file-save-selection") {
-            cs->setSyntiState(synti->state());
+      else if (cmd == "file-save-selection")
             saveSelection(cs);
-            }
-      else if (cmd == "file-save-a-copy") {
-            cs->setSyntiState(synti->state());
+      else if (cmd == "file-save-a-copy")
             saveAs(cs, true);
-            }
       else if (cmd == "file-new")
             newFile();
       else if (cmd == "quit") {
@@ -4601,8 +4662,8 @@ void MuseScore::noteTooShortForTupletDialog()
 
 void MuseScore::instrumentChanged()
       {
-      if (iledit)
-            iledit->updateAll(cs);
+      if (mixer)
+            mixer->updateAll(cs);
       }
 
 //---------------------------------------------------------

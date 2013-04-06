@@ -1,7 +1,6 @@
 //=============================================================================
 //  MuseScore
 //  Music Composition & Notation
-//  $Id:$
 //
 //  Copyright (C) 2011 Werner Schweer and others
 //
@@ -299,7 +298,6 @@ enum {
 
       TEXT_STYLE_INSTRUMENT_EXCERPT,
       TEXT_STYLE_DYNAMICS,
-//      TEXT_STYLE_DYNAMICS2,
       TEXT_STYLE_TECHNIK,
       TEXT_STYLE_TEMPO,
       TEXT_STYLE_METRONOME,
@@ -393,7 +391,6 @@ class MScore : public QObject {
       static qreal nudgeStep;
       static int defaultPlayDuration;
       static QString partStyle;
-      static QString soundFont;
       static QString lastError;
       static bool layoutDebug;
 
@@ -406,6 +403,7 @@ class MScore : public QObject {
       static qreal DPI;
       static qreal DPMM;
       static bool debugMode;
+      static bool testMode;
       };
 
 Q_DECLARE_METATYPE(MScore::ValueType)

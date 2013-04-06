@@ -1,7 +1,6 @@
 //=============================================================================
 //  MuseScore
 //  Music Composition & Notation
-//  $Id: utils.h 4960 2011-11-10 10:30:23Z wschweer $
 //
 //  Copyright (C) 2002-2011 Werner Schweer
 //
@@ -16,6 +15,18 @@
 
 #include "mscore.h"
 #include "interval.h"
+
+//---------------------------------------------------------
+//   cycles
+//---------------------------------------------------------
+
+/*static inline unsigned long long cycles()
+      {
+      unsigned long long rv;
+      __asm__ __volatile__("rdtsc" : "=A" (rv));
+      return rv;
+      }*/
+
 
 class Measure;
 class Segment;

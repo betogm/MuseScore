@@ -1,7 +1,6 @@
 //=============================================================================
 //  MuseScore
 //  Music Composition & Notation
-//  $Id: chordrest.cpp 5609 2012-05-07 19:54:46Z wschweer $
 //
 //  Copyright (C) 2002-2011 Werner Schweer
 //
@@ -201,7 +200,7 @@ void ChordRest::writeProperties(Xml& xml) const
                   qDebug("ChordRest: spannerBack->id == -1");
             }
 #ifndef NDEBUG
-      if (_beam && (score()->testMode() || !_beam->generated()))
+      if (_beam && (MScore::testMode || !_beam->generated()))
             xml.tag("Beam", _beam->id());
 #else
       if (!xml.clipboardmode && _beam && !_beam->generated())

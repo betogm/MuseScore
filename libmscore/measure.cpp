@@ -1,7 +1,6 @@
 //=============================================================================
 //  MuseScore
 //  Music Composition & Notation
-//  $Id: measure.cpp 5656 2012-05-21 15:36:47Z wschweer $
 //
 //  Copyright (C) 2002-2011 Werner Schweer
 //
@@ -2426,7 +2425,7 @@ void Measure::scanElements(void* data, void (*func)(void*, Element*), bool all)
                   e->scanElements(data, func, all);
                   }
             foreach(Element* e, s->annotations()) {
-                  if (all || visible(e->staffIdx()))
+                  if (all || e->systemFlag() || visible(e->staffIdx()))
                         e->scanElements(data,  func, all);
                   }
             }
@@ -2487,8 +2486,11 @@ bool Measure::setStartRepeatBarLine(bool val)
                   score()->undoRemoveElement(bl);
                   changed = true;
                   }
-            if (bl && val && span)
+            if (bl && val && span) {
                   bl->setSpan(span);
+                  bl->setSpanFrom(staff->barLineFrom());
+                  bl->setSpanTo(staff->barLineTo());
+                  }
 
             ++staffIdx;
             //

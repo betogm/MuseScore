@@ -25,7 +25,7 @@
 #include "select.h"
 #include "fraction.h"
 #include "interval.h"
-#include "sparm.h"
+#include "synthesizerstate.h"
 #include "mscoreview.h"
 #include "segment.h"
 #include "accidental.h"
@@ -296,8 +296,6 @@ class Score : public QObject {
       Measure* startLayout;   ///< start a relayout at this measure
       LayoutFlags layoutFlags;
 
-      bool _testMode;               // prepare for regression tests
-
       bool _updateAll;
       bool _layoutAll;        ///< do a complete relayout
 
@@ -353,7 +351,6 @@ class Score : public QObject {
       bool _showOmr;
       PlayMode _playMode;
 
-      SyntiState _syntiState;
 
       //------------------
 
@@ -408,6 +405,8 @@ class Score : public QObject {
       void transposeKeys(int staffStart, int staffEnd, int tickStart, int tickEnd, const Interval&);
       void reLayout(Measure*);
 
+      void hideEmptyStaves(System* system, bool isFirstSystem);
+
       void checkSlurs();
       void checkScore();
       bool rewriteMeasures(Measure* fm, Measure* lm, const Fraction&);
@@ -421,6 +420,9 @@ class Score : public QObject {
       void removeGeneratedElements(Measure* mb, Measure* end);
       qreal cautionaryWidth(Measure* m);
       void createPlayEvents();
+
+   protected:
+      SynthesizerState _synthesizerState;
 
    public:
       void setDirty(bool val);
@@ -814,8 +816,8 @@ class Score : public QObject {
       Page* getEmptyPage();
 
       void layoutChords1(Segment* segment, int staffIdx);
-      SyntiState& syntiState()                           { return _syntiState;         }
-      void setSyntiState(const SyntiState& s);
+      SynthesizerState& synthesizerState()     { return _synthesizerState; }
+      void setSynthesizerState(const SynthesizerState& s);
 
       const QList<StaffType**>& staffTypes() const { return _staffTypes; }
       void replaceStaffTypes(const QList<StaffType*>&);
@@ -903,8 +905,6 @@ class Score : public QObject {
       void transposeSemitone(int semitone);
       MeasureBase* insertMeasure(Element::ElementType type, MeasureBase*,
          bool createEmptyMeasures = false);
-      bool testMode() const        { return _testMode; }
-      void setTestMode(bool val);
       Audio* audio() const         { return _audio;    }
       void setAudio(Audio* a)      { _audio = a;       }
       PlayMode playMode() const    { return _playMode; }
@@ -921,6 +921,8 @@ class Score : public QObject {
       qreal computeMinWidth(Segment* fs) const;
       void updateBarLineSpans(int idx, int linesOld, int linesNew);
       Sym& sym(int id) { return symbols[symIdx()][id]; }
+
+      friend class ChangeSynthesizerState;
       };
 
 extern Score* gscore;

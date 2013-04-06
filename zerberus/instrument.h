@@ -26,10 +26,10 @@ class SfzRegion;
 class Sample;
 
 //---------------------------------------------------------
-//   Instrument
+//   ZInstrument
 //---------------------------------------------------------
 
-class Instrument {
+class ZInstrument {
       Zerberus* _msynth;
 
       QString _name;
@@ -43,7 +43,9 @@ class Instrument {
       bool read(const QByteArray&, QZipReader*, const QString& path);
 
    public:
-      Instrument(Zerberus*);
+      ZInstrument(Zerberus*);
+      ~ZInstrument();
+
       bool load(const QString&);
       int program() const                   { return _program; }
       QString name() const                  { return _name;   }
@@ -53,6 +55,7 @@ class Instrument {
       Sample* readSample(const QString& s, QZipReader* uz);
       void addZone(Zone* z)                 { _zones.push_back(z); }
       void addRegion(SfzRegion&);
+      Zerberus* msynth()                    { return _msynth;}
 
       static QByteArray buf;  // used during read of Sample
       static int idx;

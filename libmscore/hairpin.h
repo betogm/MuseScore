@@ -1,7 +1,6 @@
 //=============================================================================
 //  MuseScore
 //  Music Composition & Notation
-//  $Id: hairpin.h 5242 2012-01-23 17:25:56Z wschweer $
 //
 //  Copyright (C) 2002-2011 Werner Schweer
 //
@@ -38,6 +37,9 @@ class HairpinSegment : public LineSegment {
       virtual ElementType type() const      { return HAIRPIN_SEGMENT; }
       virtual void draw(QPainter*) const;
       virtual void layout();
+      virtual QVariant getProperty(P_ID id) const;
+      virtual bool setProperty(P_ID id, const QVariant& v);
+      virtual QVariant propertyDefault(P_ID id) const;
       };
 
 //---------------------------------------------------------

@@ -11,9 +11,11 @@
 //=============================================================================
 
 #include "midievent.h"
-#include "libmscore/midipatch.h"
+#include "mscore/preferences.h"
+#include "synthesizer/midipatch.h"
 
 #include "zerberus.h"
+#include "zerberusgui.h"
 #include "voice.h"
 #include "channel.h"
 #include "instrument.h"
@@ -35,7 +37,7 @@ Zerberus::Zerberus()
             Voice::init();
             }
       for (int i = 0; i < MAX_VOICES; ++i)
-            freeVoices.push(new Voice);
+            freeVoices.push(new Voice(this));
       for (int i = 0; i < MAX_CHANNEL; ++i)
             _channel[i] = new Channel(this, i);
       }
@@ -52,8 +54,9 @@ Zerberus::~Zerberus()
 //   programChange
 //---------------------------------------------------------
 
-void Zerberus::programChange(int /*channel*/, int /*program*/)
+void Zerberus::programChange(int channel, int program)
       {
+      printf("Zerberus programChange %d %d\n", channel, program);
       }
 
 //---------------------------------------------------------
@@ -63,7 +66,7 @@ void Zerberus::programChange(int /*channel*/, int /*program*/)
 
 void Zerberus::trigger(Channel* channel, int key, int velo, Trigger trigger)
       {
-      Instrument* i = channel->instrument();
+      ZInstrument* i = channel->instrument();
 // printf("trigger %d %d type %d\n", key, velo, trigger);
       for (Zone* z : i->zones()) {
             if (z->match(channel, key, velo, trigger)) {
@@ -112,12 +115,25 @@ void Zerberus::play(const MidiEvent& event)
 //    return true on success
 //---------------------------------------------------------
 
-bool Zerberus::loadInstrument(const QString& path)
+bool Zerberus::loadInstrument(const QString& s)
       {
-      if (path.isEmpty())
+printf("Zerberus::loadInstrument <%s>\n", qPrintable(s));
+      if (s.isEmpty())
             return false;
+      for (ZInstrument* instr : instruments) {
+            if (instr->path() == s)    // already loaded?
+                  return true;
+            }
+      QFileInfoList l = sfzFiles();
+      QString path;
+      foreach (const QFileInfo& fi, l) {
+            if (fi.fileName() == s) {
+                  path = fi.absoluteFilePath();
+                  break;
+                  }
+            }
       busy = true;
-      Instrument* instr = new Instrument(this);
+      ZInstrument* instr = new ZInstrument(this);
       if (instr->load(path)) {
             instruments.push_back(instr);
             if (instruments.size() == 1) {
@@ -127,23 +143,10 @@ bool Zerberus::loadInstrument(const QString& path)
             busy = false;
             return true;
             }
+      qDebug("Zerberus::loadInstrument failed");
       busy = false;
       delete instr;
       return false;
-      }
-
-//---------------------------------------------------------
-//   instrument
-//---------------------------------------------------------
-
-Instrument* Zerberus::instrument(int program) const
-      {
-      for(Instrument* i : instruments) {
-            if (i->program() == program)
-                  return i;
-            }
-      qFatal("instrument for program %d not found", program);
-      return 0;
       }
 
 //---------------------------------------------------------
@@ -230,7 +233,7 @@ void Zerberus::process(const MidiEvent& event)
 //    realtime
 //---------------------------------------------------------
 
-void Zerberus::process(int frames, float* p)
+void Zerberus::process(unsigned frames, float* p, float*, float*)
       {
       if (busy)
             return;
@@ -239,17 +242,13 @@ void Zerberus::process(int frames, float* p)
 
       Voice* v = activeVoices;
       Voice* pv = 0;
-      int n = 0;
-      int nn = 0;
       while (v) {
-            ++nn;
             v->process(frames, p);
             if (v->isOff()) {
                   if (pv)
                         pv->setNext(v->next());
                   else
                         activeVoices = v->next();
-                  ++n;
                   freeVoices.push(v);
                   }
             else
@@ -265,15 +264,6 @@ void Zerberus::process(int frames, float* p)
 const char* Zerberus::name() const
       {
       return "Zerberus";
-      }
-
-//---------------------------------------------------------
-//   process
-//---------------------------------------------------------
-
-void Zerberus::process(unsigned n, float* p, float)
-      {
-      process(n, p);
       }
 
 //---------------------------------------------------------
@@ -296,20 +286,12 @@ const QList<MidiPatch*>& Zerberus::getPatchInfo() const
       qDeleteAll(pl);
       pl.clear();
       int idx = 0;
-      for (Instrument* i : instruments) {
-            MidiPatch* p = new MidiPatch { false, 2, 0, idx, i->name() };
+      for (ZInstrument* i : instruments) {
+            MidiPatch* p = new MidiPatch { false, name(), 0, idx, i->name() };
             pl.append(p);
             ++idx;
             }
       return pl;
-      }
-
-//---------------------------------------------------------
-//   init
-//---------------------------------------------------------
-
-void Zerberus::init()
-      {
       }
 
 //---------------------------------------------------------
@@ -358,10 +340,8 @@ bool Zerberus::loadSoundFonts(const QStringList& sl)
 QStringList Zerberus::soundFonts() const
       {
       QStringList sl;
-      for (Instrument* i : instruments) {
-            printf("  soundFonts <%s>\n", qPrintable(i->path()));
-            sl.append(i->path());
-            }
+      for (ZInstrument* i : instruments)
+            sl.append(QFileInfo(i->path()).fileName());
       return sl;
       }
 
@@ -380,7 +360,7 @@ bool Zerberus::addSoundFont(const QString& s)
 
 bool Zerberus::removeSoundFont(const QString& s)
       {
-      for (Instrument* i : instruments) {
+      for (ZInstrument* i : instruments) {
             if (i->path() == s) {
                   auto it = find(instruments.begin(), instruments.end(), i);
                   if (it == instruments.end())
@@ -407,28 +387,41 @@ bool Zerberus::removeSoundFont(const QString& s)
 //   state
 //---------------------------------------------------------
 
-SyntiState Zerberus::state() const
+SynthesizerGroup Zerberus::state() const
       {
-      SyntiState sp;
+      SynthesizerGroup g;
+      g.setName(name());
 
       QStringList sfl = soundFonts();
       foreach(QString sf, sfl)
-            sp.append(SyntiParameter(SParmId(ZERBERUS_ID, 0, 0).val, "sfz-font", sf));
-      return sp;
+            g.push_back(IdValue(0, sf));
+      return g;
       }
 
 //---------------------------------------------------------
 //   setState
 //---------------------------------------------------------
 
-void Zerberus::setState(SyntiState& sp)
+void Zerberus::setState(const SynthesizerGroup& sp)
       {
       QStringList sfs;
-      for (int i = 0; i < sp.size(); ++i) {
-            SyntiParameter* p = &sp[i];
-            if (p->id() == -1 && p->name() == "sfz-font")
-                  sfs.append(p->sval());
-            }
+      for (const IdValue& v : sp)
+            sfs.append(v.data);
       loadSoundFonts(sfs);
+      }
+
+//---------------------------------------------------------
+//   instrument
+//---------------------------------------------------------
+
+ZInstrument* Zerberus::instrument(int n) const
+      {
+      int idx = 0;
+      for (auto i = instruments.begin(); i != instruments.end(); ++i) {
+            if (idx == n)
+                  return *i;
+            ++idx;
+            }
+      return 0;
       }
 

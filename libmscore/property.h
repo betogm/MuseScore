@@ -1,7 +1,6 @@
 //=============================================================================
 //  MuseScore
 //  Music Composition & Notation
-//  $Id:$
 //
 //  Copyright (C) 2011 Werner Schweer
 //
@@ -138,6 +137,8 @@ enum P_ID {
       P_GLISS_TEXT,
       P_GLISS_SHOW_TEXT,
 
+      P_DIAGONAL,
+
       P_END
       };
 
@@ -159,7 +160,8 @@ enum P_TYPE {
       T_LAYOUT_BREAK,
       T_VALUE_TYPE,
       T_BEAM_MODE,
-      T_PLACEMENT
+      T_PLACEMENT,
+      T_TEMPO
       };
 
 extern QVariant getProperty(P_ID type, XmlReader& e);

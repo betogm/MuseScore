@@ -1,7 +1,6 @@
 //=============================================================================
 //  MuseScore
 //  Music Composition & Notation
-//  $Id: clef.cpp 5343 2012-02-18 19:50:35Z miwarre $
 //
 //  Copyright (C) 2002-2011 Werner Schweer
 //
@@ -214,7 +213,7 @@ void Clef::layout1()
             Symbol* number = new Symbol(score());
             symbol->setMag(smag);
             number->setSym(clefEightSym);
-            addElement(number, .0, 4.5 * msp + yoff * _spatium);
+            addElement(number, .5* msp, 4.5 * msp + yoff * _spatium);
             }
             break;
       case CLEF_F15:                            // F clef 15ma bassa on penultimate line
@@ -224,10 +223,10 @@ void Clef::layout1()
             Symbol* number = new Symbol(score());
             symbol->setMag(smag);
             number->setSym(clefOneSym);
-            addElement(number, .0, 4.5 * msp + yoff * _spatium);
+            addElement(number, .3* msp, 4.5 * msp + yoff * _spatium);
             number = new Symbol(score());
             number->setSym(clefFiveSym);
-            addElement(number, .8 * msp, 4.5 * msp + yoff * _spatium);
+            addElement(number, 1.1 * msp, 4.5 * msp + yoff * _spatium);
             }
             break;
       case CLEF_F_B:                            // baritone clef
@@ -294,10 +293,10 @@ void Clef::layout1()
             Symbol* number = new Symbol(score());
             symbol->setMag(smag);
             number->setSym(clefOneSym);
-            addElement(number, .0 * msp, -1.5 * msp + yoff * _spatium);
+            addElement(number, .3* msp, -1.5 * msp + yoff * _spatium);
             number = new Symbol(score());
             number->setSym(clefFiveSym);
-            addElement(number, .8 * msp, -1.5 * msp + yoff * _spatium);
+            addElement(number, 1.1 * msp, -1.5 * msp + yoff * _spatium);
             }
             break;
       case CLEF_INVALID:

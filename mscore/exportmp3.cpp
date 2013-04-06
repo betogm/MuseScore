@@ -19,13 +19,11 @@
 //=============================================================================
 
 #include "libmscore/score.h"
-//#include "fluid/fluid.h"
-#include "libmscore/msynthesizer.h"
+#include "synthesizer/msynthesizer.h"
 #include "libmscore/note.h"
 #include "musescore.h"
 #include "libmscore/part.h"
 #include "preferences.h"
-#include "seq.h"
 #include "exportmp3.h"
 
 //---------------------------------------------------------
@@ -679,10 +677,9 @@ bool MuseScore::saveMp3(Score* score, const QString& name)
 
       int bufferSize   = exporter.getOutBufferSize();
       uchar* bufferOut = new uchar[bufferSize];
-      MasterSynthesizer* synti = new MasterSynthesizer();
-      synti->init();
+      MasterSynthesizer* synti = synthesizerFactory();
       synti->setSampleRate(sampleRate);
-      synti->setState(score->syntiState());
+      synti->setState(score->synthesizerState());
 
       EventMap events;
       score->renderMidi(&events);
@@ -715,14 +712,13 @@ bool MuseScore::saveMp3(Score* score, const QString& name)
                               if (e.type() == ME_INVALID)
                                     continue;
                               e.setChannel(a.channel);
-                              int syntiIdx= score->midiMapping(a.channel)->articulation->synti;
+                              int syntiIdx= synti->index(score->midiMapping(a.channel)->articulation->synti);
                               synti->play(e, syntiIdx);
                               }
                         }
                   }
 
             double playTime = 0.0;
-            synti->setGain(gain);
 
             for (;;) {
                   unsigned frames = FRAMES;
@@ -759,7 +755,7 @@ bool MuseScore::saveMp3(Score* score, const QString& name)
                               int channelIdx = e.channel();
                               Channel* c = score->midiMapping(channelIdx)->articulation;
                               if (!c->mute) {
-                                    synti->play(e, c->synti);
+                                    synti->play(e, synti->index(c->synti));
                                     }
                               }
                         }
@@ -773,6 +769,10 @@ bool MuseScore::saveMp3(Score* score, const QString& name)
                               *r++ = *sp++;
                               }
                         playTime += double(frames)/double(sampleRate);
+                        }
+                  for (int i = 0; i < FRAMES; ++i) {
+                        bufferL[i] *= gain;
+                        bufferR[i] *= gain;
                         }
                   if (pass == 1) {
                         long bytes;

@@ -1,7 +1,6 @@
 //=============================================================================
 //  MuseScore
 //  Music Composition & Notation
-//  $Id: score.cpp 5632 2012-05-15 16:36:57Z wschweer $
 //
 //  Copyright (C) 2002-2011 Werner Schweer
 //
@@ -42,7 +41,7 @@
 #include "pitchspelling.h"
 #include "line.h"
 #include "volta.h"
-#include "event.h"
+// #include "event.h"
 #include "repeat.h"
 #include "ottava.h"
 #include "barline.h"
@@ -266,7 +265,6 @@ void MeasureBaseList::change(MeasureBase* ob, MeasureBase* nb)
 void Score::init()
       {
       _linkId         = 0;
-      _testMode       = false;
       _parentScore    = 0;
       _currentLayer   = 0;
       _playMode       = PLAYMODE_SYNTHESIZER;
@@ -386,7 +384,7 @@ Score::Score(Score* parent)
             if (f.open(QIODevice::ReadOnly))
                   _style.load(&f);
             }
-      _syntiState = parent->_syntiState;
+      _synthesizerState = parent->_synthesizerState;
       }
 
 //---------------------------------------------------------
@@ -1444,7 +1442,8 @@ void Score::addElement(Element* element)
             case Element::CLEF:
                   {
                   Clef* clef = static_cast<Clef*>(element);
-                  updateNoteLines(clef->segment(), clef->track());
+                  if (!clef->generated())
+                        updateNoteLines(clef->segment(), clef->track());
                   }
                   break;
             case Element::KEYSIG:
@@ -1602,7 +1601,8 @@ void Score::removeElement(Element* element)
             case Element::CLEF:
                   {
                   Clef* clef = static_cast<Clef*>(element);
-                  updateNoteLines(clef->segment(), clef->track());
+                  if (!clef->generated())
+                        updateNoteLines(clef->segment(), clef->track());
                   }
                   break;
             case Element::KEYSIG:
@@ -2205,15 +2205,14 @@ Score* Score::clone()
       }
 
 //---------------------------------------------------------
-//   setSyntiSettings
+//   setSynthesizerState
 //---------------------------------------------------------
 
-void Score::setSyntiState(const SyntiState& s)
+void Score::setSynthesizerState(const SynthesizerState& s)
       {
-      if (!(_syntiState == s)) {
-            // _dirty = true;       // DEBUG: conflicts with setting of default sound font
-            _syntiState = s;
-            }
+      // TODO: make undoable
+      _dirty = true;
+      _synthesizerState = s;
       }
 
 //---------------------------------------------------------
@@ -3316,16 +3315,6 @@ void Score::linkId(int val)
       Score* s = rootScore();
       if (val >= s->_linkId)
             s->_linkId = val + 1;   // update unused link id
-      }
-
-//---------------------------------------------------------
-//   setTestMode
-//---------------------------------------------------------
-
-void Score::setTestMode(bool val)
-      {
-      foreach(Score* score, scoreList())
-            score->_testMode = val;
       }
 
 //---------------------------------------------------------

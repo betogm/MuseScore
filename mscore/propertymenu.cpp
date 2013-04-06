@@ -28,9 +28,6 @@
 #include "tremolobarprop.h"
 #include "timesigproperties.h"
 #include "textproperties.h"
-#include "tempoproperties.h"
-#include "dynamicprop.h"
-#include "hairpinprop.h"
 #include "sectionbreakprop.h"
 #include "stafftextproperties.h"
 #include "slurproperties.h"
@@ -231,7 +228,6 @@ void ScoreView::createElementPropertyMenu(Element* e, QMenu* popup)
                   popup->addAction(tr("Set Invisible"))->setData("invisible");
             else
                   popup->addAction(tr("Set Visible"))->setData("invisible");
-            popup->addAction(tr("MIDI Properties..."))->setData("d-dynamics");
             popup->addAction(tr("Text Properties..."))->setData("d-props");
             }
       else if (e->type() == Element::TEXTLINE_SEGMENT
@@ -256,7 +252,6 @@ void ScoreView::createElementPropertyMenu(Element* e, QMenu* popup)
             }
       else if (e->type() == Element::TEMPO_TEXT) {
             genPropertyMenu1(e, popup);
-            popup->addAction(tr("Tempo Properties..."))->setData("tempo-props");
             popup->addAction(tr("Text Properties..."))->setData("text-props");
             }
       else if (e->type() == Element::KEYSIG) {
@@ -322,16 +317,6 @@ void ScoreView::createElementPropertyMenu(Element* e, QMenu* popup)
       else if (e->type() == Element::GLISSANDO) {
             genPropertyMenu1(e, popup);
             popup->addAction(tr("Glissando Properties..."))->setData("gliss-props");
-            }
-      else if (e->type() == Element::HAIRPIN_SEGMENT) {
-            QAction* a = popup->addSeparator();
-            a->setText(tr("Dynamics"));
-            if (e->visible())
-                  a = popup->addAction(tr("Set Invisible"));
-            else
-                  a = popup->addAction(tr("Set Visible"));
-            a->setData("invisible");
-            popup->addAction(tr("Hairpin Properties..."))->setData("hp-props");
             }
       else if (e->type() == Element::HARMONY) {
             genPropertyMenu1(e, popup);
@@ -514,23 +499,6 @@ void ScoreView::elementPropertyAction(const QString& cmd, Element* e)
             StaffTextProperties rp(static_cast<StaffText*>(e));
             rp.exec();
             }
-      else if (cmd == "d-dynamics") {
-            Dynamic* dynamic = static_cast<Dynamic*>(e);
-            int oldVelo    = dynamic->velocity();
-            Element::DynamicRange ot = dynamic->dynRange();
-            DynamicProperties dp(dynamic);
-            int rv = dp.exec();
-            if (rv) {
-                  int newVelo    = dynamic->velocity();
-                  Element::DynamicRange nt = dynamic->dynRange();
-                  dynamic->setVelocity(oldVelo);
-                  dynamic->setDynRange(ot);
-                  if (newVelo != oldVelo)
-                        score()->undoChangeProperty(dynamic, P_VELOCITY, newVelo);
-                  if (nt != ot)
-                        score()->undoChangeProperty(dynamic, P_DYNAMIC_RANGE, nt);
-                  }
-            }
       else if (cmd == "text-props") {
             Text* ot    = static_cast<Text*>(e);
             Text* nText = static_cast<Text*>(ot->clone());
@@ -569,10 +537,6 @@ void ScoreView::elementPropertyAction(const QString& cmd, Element* e)
                         score()->select(e, SELECT_ADD, 0);
                   }
             delete nText;
-            }
-      else if (cmd == "tempo-props") {
-            TempoProperties rp(static_cast<TempoText*>(e));
-            rp.exec();
             }
       else if (cmd == "key-courtesy") {
             KeySig* ks = static_cast<KeySig*>(e);
@@ -665,21 +629,6 @@ void ScoreView::elementPropertyAction(const QString& cmd, Element* e)
             GlissandoProperties vp(static_cast<Glissando*>(e));
             vp.exec();
             }
-      else if (cmd == "hp-props") {
-            HairpinSegment* hps = static_cast<HairpinSegment*>(e);
-            Hairpin* hp = hps->hairpin();
-            HairpinProperties dp(hp);
-            int rv = dp.exec();
-
-            int vo = dp.changeVelo();
-            Element::DynamicRange dt = dp.dynamicRange();
-            if (rv && ((vo != hp->veloChange())
-               || (dt != hp->dynRange())
-               || (dp.allowDiagonal() != hp->diagonal())
-               )) {
-                  score()->undo(new ChangeHairpin(hp, vo, dt, dp.allowDiagonal()));
-                  }
-              }
        else if (cmd == "ha-props") {
             Harmony* ha = static_cast<Harmony*>(e);
             ChordEdit ce(ha->score());
