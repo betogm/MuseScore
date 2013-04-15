@@ -1171,9 +1171,10 @@ void ScoreView::updateGrips()
       if (curGrip == -1)
             curGrip = grips-1;
 
-      QPointF pt(editObject->getGrip(curGrip));
-      if (!editObject->isText())
+      if (!editObject->isText()) {
+            QPointF pt(editObject->getGrip(curGrip));
             mscore->editTools()->setEditPos(pt);
+            }
 
       QPointF anchor = editObject->gripAnchor(curGrip);
       if (!anchor.isNull())
@@ -1544,6 +1545,8 @@ void ScoreView::paintEvent(QPaintEvent* ev)
                   vp.setBrush(((i == curGrip) && hasFocus()) ? QBrush(Qt::blue) : Qt::NoBrush);
                   vp.drawRect(grip[i]);
                   }
+            if (editObject)      // if object is moved, it may not be covered by bsp
+                  paintElement(&vp, editObject);
             }
       }
 
@@ -4365,8 +4368,8 @@ void ScoreView::harmonyTab(bool back)
       ((Harmony*)editObject)->moveCursorToEnd();
 
       _score->setLayoutAll(true);
-      //_score->end2();
-      //_score->end1();
+      _score->end2();
+      _score->end1();
       }
 
 //---------------------------------------------------------
@@ -4464,8 +4467,8 @@ void ScoreView::harmonyBeatsTab(bool noterest, bool back)
       ((Harmony*)editObject)->moveCursorToEnd();
 
       _score->setLayoutAll(true);
-      //_score->end2();
-      //_score->end1();
+      _score->end2();
+      _score->end1();
       }
 
 //---------------------------------------------------------
@@ -4536,8 +4539,8 @@ void ScoreView::harmonyTicksTab(int ticks)
       ((Harmony*)editObject)->moveCursorToEnd();
 
       _score->setLayoutAll(true);
-      //_score->end2();
-      //_score->end1();
+      _score->end2();
+      _score->end1();
       }
 
 //---------------------------------------------------------
@@ -4722,16 +4725,18 @@ void ScoreView::cmdAddChordName()
       if (!cr)
             return;
       _score->startCmd();
-      Harmony* s = new Harmony(_score);
-      s->setTrack(cr->track());
-      s->setParent(cr->segment());
-      _score->undoAddElement(s);
+      Harmony* harmony = new Harmony(_score);
+      harmony->setTrack(cr->track());
+      harmony->setParent(cr->segment());
+      _score->undoAddElement(harmony);
+
+      _score->select(harmony, SELECT_SINGLE, 0);
+      // adjustCanvasPosition(s, false);
+      startEdit(harmony);
 
       _score->setLayoutAll(true);
-
-      _score->select(s, SELECT_SINGLE, 0);
-      // adjustCanvasPosition(s, false);
-      startEdit(s);
+      _score->end2();
+      _score->end1();
       }
 
 //---------------------------------------------------------
@@ -4783,7 +4788,7 @@ void ScoreView::cmdAddText(int type)
                   s = new StaffText(_score);
                   if (type == TEXT_SYSTEM) {
                         s->setTrack(0);
-                        s->setTextStyle(_score->textStyle(TEXT_STYLE_SYSTEM));
+                        s->setTextStyleType(TEXT_STYLE_SYSTEM);
                         }
                   else {
                         s->setTrack(cr->track());

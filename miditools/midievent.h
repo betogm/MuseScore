@@ -35,7 +35,7 @@ enum class MidiEventType : unsigned char {
       STOP       = 0xfc,
       SENSE      = 0xfe    // active sense (used by yamaha)
       };
-#if 0
+
 enum {
       CTRL_HBANK              = 0x00,
       CTRL_LBANK              = 0x20,
@@ -100,7 +100,6 @@ enum {
      META_TIME_SIGNATURE  = 0x58,
      META_KEY_SIGNATURE   = 0x59,
      };
-#endif
 
 //---------------------------------------------------------
 //   MidiEvent
@@ -108,15 +107,15 @@ enum {
 
 class MidiEvent {
       MidiEventType _type;
-      uchar _channel;
-      uchar _dataA;
-      uchar _dataB;
+      char _channel;
+      char _dataA;
+      char _dataB;
 
    public:
       MidiEvent() {}
-      MidiEvent(MidiEventType t, uchar c, uchar a, uchar b)
+      MidiEvent(MidiEventType t, char c, char a, char b)
          : _type(t), _channel(c), _dataA(a), _dataB(b) {};
-      void set(MidiEventType t, uchar c, uchar a, uchar b) {
+      void set(MidiEventType t, char c, char a, char b) {
             _type    = t;
             _channel = c;
             _dataA   = a;
@@ -125,13 +124,10 @@ class MidiEvent {
 
       MidiEventType type() const    { return _type;    }
       void setType(MidiEventType t) { _type = t;       }
-      uchar channel() const         { return _channel; }
-      void setChannel(uchar c)      { _channel = c;    }
-      uchar dataA() const           { return _dataA;   }
-      uchar dataB() const           { return _dataB;   }
+      char channel() const          { return _channel; }
+      char dataA() const            { return _dataA;   }
+      char dataB() const            { return _dataB;   }
       };
-
-#include "synthesizer/event.h"
 
 #endif
 

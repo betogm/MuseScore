@@ -121,6 +121,7 @@ double converterDpi = 0;
 QString mscoreGlobalShare;
 static QStringList recentScores;
 static QString outFileName;
+static QString audioDriver;
 static QString pluginName;
 static QString styleFile;
 QString localeName;
@@ -282,8 +283,11 @@ void MuseScore::closeEvent(QCloseEvent* ev)
             pluginCreator->writeSettings();
 #endif
 
-      seq->stopWait();
-      seq->exit();
+      if(seq) {
+            seq->stopWait();
+            seq->exit();
+            }
+
       ev->accept();
       if (preferences.dirty)
             preferences.write();
@@ -1319,6 +1323,7 @@ static void usage()
         "   -L        layout debug\n"
         "   -s        no internal synthesizer\n"
         "   -m        no midi\n"
+        "   -a driver use audio driver: jack alsa pulse portaudio\n"
         "   -n        start with new score\n"
         "   -I        dump midi input\n"
         "   -O        dump midi output\n"
@@ -2240,11 +2245,11 @@ int main(int argc, char* av[])
                   ++i;
                   continue;
                   }
-            switch(s[1].toLatin1()) {
+            switch (s[1].toLatin1()) {
                   case 'v':
                         printVersion("MuseScore");
                         return 0;
-                   case 'd':
+                  case 'd':
                         MScore::debugMode = true;
                         break;
                   case 'L':
@@ -2255,6 +2260,11 @@ int main(int argc, char* av[])
                         break;
                   case 'm':
                         noMidi = true;
+                        break;
+                  case 'a':
+                        if (argv.size() - i < 2)
+                              usage();
+                        audioDriver = argv.takeAt(i + 1);
                         break;
                   case 'n':
                         startWithNewScore = true;
@@ -2427,15 +2437,23 @@ int main(int argc, char* av[])
                   case STYLE_NATIVE:
                         break;
                   }
-            seq                = new Seq();
-            MScore::seq        = seq;
-            Driver* driver     = driverFactory(seq);
-            synti              = synthesizerFactory();
-            MScore::sampleRate = driver->sampleRate();
-            synti->setSampleRate(MScore::sampleRate);
+            seq            = new Seq();
+            MScore::seq    = seq;
+            Driver* driver = driverFactory(seq, audioDriver);
+            if (driver) {
+                  synti              = synthesizerFactory();
+                  MScore::sampleRate = driver->sampleRate();
+                  synti->setSampleRate(MScore::sampleRate);
 
-            seq->setDriver(driver);
-            seq->setMasterSynthesizer(synti);
+                  seq->setDriver(driver);
+                  seq->setMasterSynthesizer(synti);
+                  }
+            else {
+                  delete seq;
+                  MScore::seq = 0;
+                  seq         = 0;
+                  noSeq       = true;
+                  }
             }
       else
             noSeq = true;
