@@ -373,7 +373,8 @@ class MuseScore : public QMainWindow, public MuseScoreCore {
       void showPlayPanel(bool);
       void showNavigator(bool);
       void showMixer(bool);
-      void showSynthControl();
+      void showSynthControl(bool);
+      void showSearchDialog();
       void helpBrowser() const;
       void helpBrowser(const QUrl&) const;
       void splitWindow(bool horizontal);
@@ -458,7 +459,6 @@ class MuseScore : public QMainWindow, public MuseScoreCore {
       void setCurrentScoreView(int);
       void setNormalState()    { changeState(STATE_NORMAL); }
       void setPlayState()      { changeState(STATE_PLAY); }
-      void setSearchState()    { changeState(STATE_SEARCH); }
       void checkForUpdate();
       QMenu* fileMenu() const  { return _fileMenu; }
       void midiNoteReceived(int channel, int pitch, int velo);
@@ -620,7 +620,6 @@ class MuseScore : public QMainWindow, public MuseScoreCore {
       static Palette* newDynamicsPalette();
       static Palette* newFramePalette();
       static Palette* newFingeringPalette();
-      static Palette* newFallDoitPalette();
       static Palette* newTremoloPalette();
       static Palette* newNoteHeadsPalette();
       static Palette* newArticulationsPalette();

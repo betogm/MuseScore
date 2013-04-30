@@ -133,6 +133,8 @@ Seq::Seq()
       playlistChanged = false;
       cs              = 0;
       cv              = 0;
+      tackRest        = 0;
+      tickRest        = 0;
 
       endTick  = 0;
       state    = TRANSPORT_STOP;
@@ -171,21 +173,6 @@ Seq::~Seq()
       }
 
 //---------------------------------------------------------
-//   stopWait
-//---------------------------------------------------------
-
-void Seq::stopWait()
-      {
-      stop();
-      QWaitCondition sleep;
-      while (state != TRANSPORT_STOP) {
-            mutex.lock();
-            sleep.wait(&mutex, 100);
-            mutex.unlock();
-            }
-      }
-
-//---------------------------------------------------------
 //   setScoreView
 //---------------------------------------------------------
 
@@ -212,8 +199,6 @@ void Seq::setScoreView(ScoreView* v)
             initInstruments();
             seek(cs->playPos());
             }
-      tackRest = 0;
-      tickRest = 0;
       }
 
 //---------------------------------------------------------
@@ -350,6 +335,26 @@ void Seq::stop()
       }
 
 //---------------------------------------------------------
+//   stopWait
+//---------------------------------------------------------
+
+void Seq::stopWait()
+      {
+      stop();
+      QWaitCondition sleep;
+      int idx = 0;
+      while (state != TRANSPORT_STOP) {
+            printf("state %d\n", state);
+            mutex.lock();
+            sleep.wait(&mutex, 100);
+            mutex.unlock();
+            ++idx;
+            if (idx > 10)
+                  abort();
+            }
+      }
+
+//---------------------------------------------------------
 //   seqStarted
 //---------------------------------------------------------
 
@@ -412,6 +417,20 @@ void Seq::guiStop()
 void Seq::seqMessage(int msg)
       {
       switch(msg) {
+            case '2':
+                  guiStop();
+//                  heartBeatTimer->stop();
+                  if (_driver && mscore->getSynthControl()) {
+                        meterValue[0]     = .0f;
+                        meterValue[1]     = .0f;
+                        meterPeakValue[0] = .0f;
+                        meterPeakValue[1] = .0f;
+                        peakTimer[0]       = 0;
+                        peakTimer[1]       = 0;
+                        mscore->getSynthControl()->setMeter(0.0, 0.0, 0.0, 0.0);
+                        }
+                  seek(0);
+                  break;
             case '0':         // STOP
                   guiStop();
 //                  heartBeatTimer->stop();
@@ -438,44 +457,11 @@ void Seq::seqMessage(int msg)
       }
 
 //---------------------------------------------------------
-//   stopTransport
-//    JACK has stopped
-//    executed in realtime environment
-//---------------------------------------------------------
-
-void Seq::stopTransport()
-      {
-      state = TRANSPORT_STOP;
-      if (cs == 0)
-            return;
-      stopNotes();
-      // send sustain off
-      Event e;
-      e.setType(ME_CONTROLLER);
-      e.setController(CTRL_SUSTAIN);
-      e.setValue(0);
-      putEvent(e);
-      emit toGui('0');
-      }
-
-//---------------------------------------------------------
-//   startTransport
-//    JACK has started
-//    executed in realtime environment
-//---------------------------------------------------------
-
-void Seq::startTransport()
-      {
-      emit toGui('1');
-      state = TRANSPORT_PLAY;
-      }
-
-//---------------------------------------------------------
 //   playEvent
 //    send one event to the synthesizer
 //---------------------------------------------------------
 
-void Seq::playEvent(const Event& event)
+void Seq::playEvent(const NPlayEvent& event)
       {
       int type = event.type();
       if (type == ME_NOTEON) {
@@ -542,6 +528,7 @@ void Seq::metronome(unsigned n, float* p)
             return;
             }
       if (tickRest) {
+            tackRest = 0;
             int idx = tickLength - tickRest;
             int nn = n < tickRest ? n : tickRest;
             for (int i = 0; i < nn; ++i) {
@@ -575,10 +562,21 @@ void Seq::process(unsigned n, float* buffer)
       int driverState = _driver->getState();
 
       if (driverState != state) {
-            if (state == TRANSPORT_STOP && driverState == TRANSPORT_PLAY)
-                  startTransport();
-            else if (state == TRANSPORT_PLAY && driverState == TRANSPORT_STOP)
-                  stopTransport();
+            if (state == TRANSPORT_STOP && driverState == TRANSPORT_PLAY) {
+                  state = TRANSPORT_PLAY;
+                  emit toGui('1');
+                  }
+            else if (state == TRANSPORT_PLAY && driverState == TRANSPORT_STOP) {
+                  state = TRANSPORT_STOP;
+                  stopNotes();
+                  // send sustain off
+                  // TODO: channel?
+                  putEvent(NPlayEvent(ME_CONTROLLER, 0, CTRL_SUSTAIN, 0));
+                  if (playPos == events.cend())
+                        emit toGui('2');
+                  else
+                        emit toGui('0');
+                  }
             else if (state != driverState)
                   qDebug("Seq: state transition %d -> %d ?\n",
                      state, driverState);
@@ -630,7 +628,7 @@ void Seq::process(unsigned n, float* buffer)
                                     }
                               }
                         }
-                  const Event& event = playPos->second;
+                  const NPlayEvent& event = playPos->second;
                   playEvent(event);
                   if (event.type() == ME_TICK1)
                         tickRest = tickLength;
@@ -665,10 +663,8 @@ void Seq::process(unsigned n, float* buffer)
                               }
                         }
                   }
-            if (playPos == events.cend()) {
+            if (playPos == events.cend())
                   _driver->stopTransport();
-                  rewindStart();
-                  }
             }
       else {
             _synti->process(frames, p);
@@ -708,11 +704,11 @@ void Seq::initInstruments()
       {
       foreach(const MidiMapping& mm, *cs->midiMapping()) {
             Channel* channel = mm.articulation;
-            foreach(Event e, channel->init) {
+            foreach(const MidiCoreEvent& e, channel->init) {
                   if (e.type() == ME_INVALID)
                         continue;
-                  e.setChannel(channel->channel);
-                  sendEvent(e);
+                  NPlayEvent event(e.type(), channel->channel, e.dataA(), e.dataB());
+                  sendEvent(event);
                   }
             }
       }
@@ -781,6 +777,10 @@ void Seq::setPos(int utick)
             return;
       stopNotes();
 
+      int ucur = cs->repeatList()->utick2tick(playPos->first);
+      if (utick != ucur)
+            updateSynthesizerState(ucur, utick);
+
       playTime  = cs->utick2utime(utick) * MScore::sampleRate;
       mutex.lock();
       playPos   = events.lower_bound(utick);
@@ -796,6 +796,9 @@ void Seq::seek(int utick)
       {
       if (cs == 0)
             return;
+
+      if (events.empty() || cs->playlistDirty() || playlistChanged)
+            collectEvents();
       int tick = cs->repeatList()->utick2tick(utick);
       Segment* seg = cs->tick2segment(tick);
       if (seg)
@@ -809,6 +812,7 @@ void Seq::seek(int utick)
             ov_pcm_seek(&vf, sp);
             }
       guiToSeq(SeqMsg(SEQ_SEEK, utick));
+
       guiPos = events.upper_bound(utick);
       mscore->setPos(utick);
       unmarkNotes();
@@ -847,11 +851,8 @@ void Seq::startNote(int channel, int pitch, int velo, double nt)
       {
       if (state != TRANSPORT_STOP)
             return;
-      Event ev(ME_NOTEON);
-      ev.setChannel(channel);
-      ev.setPitch(pitch);
+      NPlayEvent ev(ME_NOTEON, channel, pitch, velo);
       ev.setTuning(nt);
-      ev.setVelo(velo);
       sendEvent(ev);
       }
 
@@ -887,7 +888,6 @@ void Seq::stopNoteTimer()
 
 //---------------------------------------------------------
 //   stopNotes
-//    called from GUI context
 //---------------------------------------------------------
 
 void Seq::stopNotes(int channel)
@@ -901,10 +901,7 @@ void Seq::stopNotes(int channel)
 
 void Seq::setController(int channel, int ctrl, int data)
       {
-      Event event(ME_CONTROLLER);
-      event.setChannel(channel);
-      event.setController(ctrl);
-      event.setValue(data);
+      NPlayEvent event(ME_CONTROLLER, channel, ctrl, data);
       sendEvent(event);
       }
 
@@ -914,7 +911,7 @@ void Seq::setController(int channel, int ctrl, int data)
 //    midi out or synthesizer
 //---------------------------------------------------------
 
-void Seq::sendEvent(const Event& ev)
+void Seq::sendEvent(const NPlayEvent& ev)
       {
       guiToSeq(SeqMsg(SEQ_PLAY, ev));
       }
@@ -977,7 +974,7 @@ void Seq::prevChord()
       EventMap::const_iterator i = events.upper_bound(cs->playPos());
       for (;;) {
             if (i->second.type() == ME_NOTEON) {
-                  const Event& n = i->second;
+                  const NPlayEvent& n = i->second;
                   if (i->first < tick && n.velo()) {
                         tick = i->first;
                         break;
@@ -992,7 +989,7 @@ void Seq::prevChord()
             i = playPos;
             for (;;) {
                   if (i->second.type() == ME_NOTEON) {
-                        const Event& n = i->second;
+                        const NPlayEvent& n = i->second;
                         if (i->first < tick && n.velo()) {
                               seek(i->first);
                               break;
@@ -1029,7 +1026,7 @@ void Seq::guiToSeq(const SeqMsg& msg)
 //   eventToGui
 //---------------------------------------------------------
 
-void Seq::eventToGui(Event e)
+void Seq::eventToGui(NPlayEvent e)
       {
       fromSeq.enqueue(SeqMsg(SEQ_MIDI_INPUT_EVENT, e));
       }
@@ -1094,7 +1091,7 @@ SeqMsg SeqMsgFifo::dequeue()
 //   putEvent
 //---------------------------------------------------------
 
-void Seq::putEvent(const Event& event)
+void Seq::putEvent(const NPlayEvent& event)
       {
       if (!cs)
             return;
@@ -1152,7 +1149,7 @@ void Seq::heartBeat()
       for (;guiPos != events.cend(); ++guiPos) {
             if (guiPos->first > ppos->first)
                   break;
-            const Event& n = guiPos->second;
+            const NPlayEvent& n = guiPos->second;
             if (n.type() == ME_NOTEON) {
                   const Note* note1 = n.note();
                   if (n.velo()) {
@@ -1187,3 +1184,21 @@ void Seq::heartBeat()
       cs->update();
       }
 
+//---------------------------------------------------------
+//   updateSynthesizerState
+//    collect all controller events between tick1 and tick2
+//    and send them to the synthesizer
+//---------------------------------------------------------
+
+void Seq::updateSynthesizerState(int tick1, int tick2)
+      {
+      if (tick1 > tick2)
+            tick1 = 0;
+      EventMap::const_iterator i1 = events.lower_bound(tick1);
+      EventMap::const_iterator i2 = events.upper_bound(tick2);
+
+      for (; i1 != i2; ++i1) {
+            if (i1->second.type() == ME_CONTROLLER)
+                  playEvent(i1->second);
+            }
+      }

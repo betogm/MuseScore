@@ -1560,6 +1560,36 @@ bool Element::isText() const
       }
 
 //---------------------------------------------------------
+//   parentChordRest
+//---------------------------------------------------------
+
+#if 0
+Element* Element::parentChordRest()
+      {
+      if (isChordRest())
+            return this;
+      else if (_parent)
+            return _parent->parentChordRest();
+      else
+            return 0;
+      }
+#endif
+
+//---------------------------------------------------------
+//   findMeasure
+//---------------------------------------------------------
+
+Element* Element::findMeasure()
+      {
+      if (type() == MEASURE)
+            return this;
+      else if (_parent)
+            return _parent->findMeasure();
+      else
+            return 0;
+      }
+
+//---------------------------------------------------------
 //   undoSetColor
 //---------------------------------------------------------
 

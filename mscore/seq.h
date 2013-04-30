@@ -54,12 +54,12 @@ struct SeqMsg {
             int intVal;
             qreal realVal;
             };
-      Event event;
+      NPlayEvent event;
 
       SeqMsg() {}
       SeqMsg(int _id, int val) : id(_id), intVal(val) {}
       SeqMsg(int _id, qreal val) : id(_id), realVal(val) {}
-      SeqMsg(int _id, const Event& e) : id(_id), event(e) {}
+      SeqMsg(int _id, const NPlayEvent& e) : id(_id), event(e) {}
       };
 
 //---------------------------------------------------------
@@ -123,14 +123,13 @@ class Seq : public QObject, public Sequencer {
 
       void collectMeasureEvents(Measure*, int staffIdx);
 
-      void stopTransport();
-      void startTransport();
       void setPos(int);
-      void playEvent(const Event&);
+      void playEvent(const NPlayEvent&);
       void guiToSeq(const SeqMsg& msg);
       void metronome(unsigned n, float* l);
       void seek(int utick, Segment* seg);
       void unmarkNotes();
+      void updateSynthesizerState(int tick1, int tick2);
 
    private slots:
       void seqMessage(int msg);
@@ -183,7 +182,7 @@ class Seq : public QObject, public Sequencer {
       void sendMessage(SeqMsg&) const;
       virtual void startNote(int channel, int, int, int, double nt);
       void setController(int, int, int);
-      virtual void sendEvent(const Event&);
+      virtual void sendEvent(const NPlayEvent&);
       void setScoreView(ScoreView*);
       Score* score() const   { return cs; }
       ScoreView* viewer() const { return cv; }
@@ -196,10 +195,10 @@ class Seq : public QObject, public Sequencer {
 
       int getCurTick();
 
-      void putEvent(const Event&);
+      void putEvent(const NPlayEvent&);
       void startNoteTimer(int duration);
       void startNote(int channel, int, int, double nt);
-      void eventToGui(Event);
+      void eventToGui(NPlayEvent);
       void stopNoteTimer();
       };
 

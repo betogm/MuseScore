@@ -49,6 +49,7 @@ bool MuseScore::saveAudio(Score* score, const QString& name, const QString& ext)
             return false;
             }
       MasterSynthesizer* synti = synthesizerFactory();
+      synti->init();
       int sampleRate = preferences.exportAudioSampleRate;
       synti->setSampleRate(sampleRate);
       synti->setState(score->synthesizerState());
@@ -80,10 +81,11 @@ bool MuseScore::saveAudio(Score* score, const QString& name, const QString& ext)
       EventMap::const_iterator endPos = events.cend();
       --endPos;
       const int et = (score->utick2utime(endPos->first) + 1) * MScore::sampleRate;
+      pBar->setRange(0, et);
+
       for (int pass = 0; pass < 2; ++pass) {
             EventMap::const_iterator playPos;
             playPos = events.cbegin();
-            pBar->setRange(0, et);
 
             //
             // init instruments
@@ -91,7 +93,7 @@ bool MuseScore::saveAudio(Score* score, const QString& name, const QString& ext)
             foreach(const Part* part, score->parts()) {
                   foreach(const Channel& a, part->instr()->channel()) {
                         a.updateInitList();
-                        foreach(Event e, a.init) {
+                        foreach(MidiCoreEvent e, a.init) {
                               if (e.type() == ME_INVALID)
                                     continue;
                               e.setChannel(a.channel);
@@ -125,7 +127,7 @@ bool MuseScore::saveAudio(Score* score, const QString& name, const QString& ext)
 
                         playTime  += n;
                         frames    -= n;
-                        const Event& e = playPos->second;
+                        const NPlayEvent& e = playPos->second;
                         if (e.isChannelEvent()) {
                               int channelIdx = e.channel();
                               Channel* c = score->midiMapping(channelIdx)->articulation;
@@ -148,7 +150,7 @@ bool MuseScore::saveAudio(Score* score, const QString& name, const QString& ext)
                               peak = qMax(peak, qAbs(buffer[i]));
                         }
                   playTime = endTime;
-                  pBar->setValue(playTime);
+                  pBar->setValue((pass * et + playTime) / 2);
 
                   if (playTime >= et)
                         break;

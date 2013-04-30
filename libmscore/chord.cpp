@@ -890,6 +890,23 @@ void Chord::read(XmlReader& e)
             else if (!ChordRest::readProperties(e))
                   e.unknown();
             }
+      if (score()->mscVersion() <= 114) { // #19988
+            Note * n = upNote();
+            if (n) {
+                  if (notes().size() == 1) {
+                        setUserOff(n->userOff() + userOff());
+                        n->setUserOff(QPoint());
+                        n->setReadPos(QPoint());
+                        }
+                  else if(!n->userOff().isNull()) {
+                        if(!_stem) {
+                              _stem = new Stem(score());
+                              add(_stem);
+                              }
+                         _stem->setUserOff(n->userOff() + _stem->userOff());
+                        }
+                  }
+            }
       }
 
 //---------------------------------------------------------
@@ -1515,7 +1532,7 @@ void Chord::layout()
             _arpeggio->layout();
             lll += _arpeggio->width() + _spatium * .5;
             qreal y = upNote()->pos().y() - headHeight * .5;
-            qreal h = downNote()->pos().y() - y;
+            qreal h = downNote()->pos().y() + downNote()->headHeight() - y;
             _arpeggio->setHeight(h);
             _arpeggio->setPos(-lll, y);
 
@@ -1613,7 +1630,7 @@ void Chord::layoutArpeggio2()
 
       if (bchord && bchord->type() == CHORD)
             dnote = static_cast<Chord*>(bchord)->downNote();
-      qreal h = dnote->pagePos().y() - y;
+      qreal h = dnote->pagePos().y() + downNote()->headHeight() - y;
       _arpeggio->setHeight(h);
 
       QList<Note*> notes;
@@ -1738,6 +1755,8 @@ Element* Chord::drop(const DropData& data)
             case ARPEGGIO:
                   {
                   Arpeggio* a = static_cast<Arpeggio*>(e);
+                  if (arpeggio())
+                        score()->undoRemoveElement(arpeggio());
                   a->setTrack(track());
                   a->setParent(this);
                   a->setHeight(spatium() * 5);   //DEBUG

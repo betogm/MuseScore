@@ -320,7 +320,7 @@ void SaveState::undo()
       redoInputState = score->inputState();
       redoSelection  = score->selection();
       score->setInputState(undoInputState);
-      undoSelection.reconstructElementList();
+//      undoSelection.reconstructElementList();
       score->setSelection(undoSelection);
       }
 
@@ -330,7 +330,7 @@ void SaveState::redo()
       undoSelection  = score->selection();
       score->setInputState(redoInputState);
       score->setSelection(redoSelection);
-      score->selection().reconstructElementList();
+//      score->selection().reconstructElementList();
       }
 
 //---------------------------------------------------------
@@ -2258,7 +2258,8 @@ void ChangePatch::flip()
             return;
             }
 
-      Event event(ME_CONTROLLER);
+      NPlayEvent event;
+      event.setType(ME_CONTROLLER);
       event.setChannel(channel->channel);
 
       int hbank = (channel->bank >> 7) & 0x7f;
@@ -2324,11 +2325,12 @@ void ChangePageFormat::flip()
 //   ChangeStaff
 //---------------------------------------------------------
 
-ChangeStaff::ChangeStaff(Staff* _staff, bool _small, bool _invisible, StaffType* st)
+ChangeStaff::ChangeStaff(Staff* _staff, bool _small, bool _invisible, qreal _userDist, StaffType* st)
       {
       staff     = _staff;
       small     = _small;
       invisible = _invisible;
+      userDist  = _userDist;
       staffType = st;
       }
 
@@ -2343,14 +2345,17 @@ void ChangeStaff::flip()
 
       int oldSmall      = staff->small();
       bool oldInvisible = staff->invisible();
+      qreal oldUserDist = staff->userDist();
       StaffType* st     = staff->staffType();
 
       staff->setSmall(small);
       staff->setInvisible(invisible);
+      staff->setUserDist(userDist);
       staff->setStaffType(staffType);
 
       small     = oldSmall;
       invisible = oldInvisible;
+      userDist  = oldUserDist;
       staffType = st;
 
       if (invisibleChanged || typeChanged) {

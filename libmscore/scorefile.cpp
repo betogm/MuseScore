@@ -44,6 +44,10 @@
 #include "barline.h"
 #include "libmscore/qzipreader_p.h"
 #include "libmscore/qzipwriter_p.h"
+#ifdef Q_WS_WIN
+#include <windows.h>
+#include <stdio.h>
+#endif
 
 //---------------------------------------------------------
 //   write
@@ -341,7 +345,11 @@ bool Score::saveFile()
 //                      + name + tr("> to backup <") + backupName + tr("> failed"));
                   }
             }
-
+#ifdef Q_WS_WIN
+      QFileInfo fileBackup(dir, backupName);
+      QString backupNativePath = QDir::toNativeSeparators(fileBackup.absoluteFilePath());
+      SetFileAttributes((LPCTSTR)backupNativePath.toLocal8Bit(), FILE_ATTRIBUTE_HIDDEN);
+#endif
       //
       // step 4
       // rename temp name into file name
@@ -817,6 +825,8 @@ bool Score::read(XmlReader& e)
 #ifdef OMR
                   _omr = new Omr(this);
                   _omr->read(e);
+#else
+                  e.skipCurrentElement();
 #endif
                   }
             else if (tag == "Audio") {
@@ -1078,7 +1088,7 @@ void Score::print(QPainter* painter, int pageNo)
       Page* page = pages().at(pageNo);
       QRectF fr  = page->abbox();
 
-      QList<const Element*> ell = page->items(fr);
+      QList<Element*> ell = page->items(fr);
       qStableSort(ell.begin(), ell.end(), elementLessThan);
       foreach(const Element* e, ell) {
             e->itemDiscovered = 0;
