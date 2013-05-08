@@ -53,6 +53,7 @@
 #include "keyedit.h"
 #include "harmonyedit.h"
 #include "navigator.h"
+#include "importmidi_panel.h"
 #include "libmscore/chord.h"
 #include "mstyle/mstyle.h"
 #include "libmscore/segment.h"
@@ -173,10 +174,10 @@ InsertMeasuresDialog::InsertMeasuresDialog(QWidget* parent)
 
 void InsertMeasuresDialog::accept()
       {
-	int n = insmeasures->value();
-	if (mscore->currentScore())
+      int n = insmeasures->value();
+      if (mscore->currentScore())
             mscore->currentScoreView()->cmdInsertMeasures(n, Element::MEASURE);
-	done(1);
+      done(1);
       }
 
 //---------------------------------------------------------
@@ -272,8 +273,8 @@ void MuseScore::closeEvent(QCloseEvent* ev)
       settings.setValue("lastSaveCopyDirectory", lastSaveCopyDirectory);
       settings.setValue("lastSaveDirectory", lastSaveDirectory);
 
-      if (playPanel)
-            preferences.playPanelPos = playPanel->pos();
+//      if (playPanel)
+//            preferences.playPanelPos = playPanel->pos();
 
       writeSettings();
       if (debugger)
@@ -436,6 +437,7 @@ MuseScore::MuseScore()
       lastCmd               = 0;
       lastShortcut          = 0;
       editTempo             = 0;
+      importmidi_panel      = 0;
 
       if (!preferences.styleName.isEmpty()) {
             QFile f(preferences.styleName);
@@ -498,7 +500,9 @@ MuseScore::MuseScore()
       connect(ag, SIGNAL(triggered(QAction*)), SLOT(cmd(QAction*)));
 
       mainWindow = new QSplitter;
+      mainWindow->setChildrenCollapsible(false);
       mainWindow->setOrientation(Qt::Vertical);
+
       QLayout* mlayout = new QVBoxLayout;
       mlayout->setMargin(0);
       mlayout->setSpacing(0);
@@ -516,6 +520,10 @@ MuseScore::MuseScore()
       _navigator = new NScrollArea;
       mainWindow->addWidget(_navigator);
       showNavigator(preferences.showNavigator);
+
+      importmidi_panel = new ImportMidiPanel(this);
+      mainWindow->addWidget(importmidi_panel);
+      showMidiImportPanel(preferences.showMidiImportPanel);
 
       QList<int> sizes;
       sizes << 500 << 50;     // initial size of score canvas relativ to navigator
@@ -919,6 +927,11 @@ MuseScore::MuseScore()
       a->setChecked(preferences.showNavigator);
       menuDisplay->addAction(a);
 
+      a = getAction("toggle-midiimportpanel");
+      a->setCheckable(true);
+      a->setChecked(preferences.showMidiImportPanel);
+      menuDisplay->addAction(a);
+
       a = getAction("toggle-mixer");
       a->setCheckable(true);
       menuDisplay->addAction(a);
@@ -1203,6 +1216,11 @@ void MuseScore::selectScore(QAction* action)
       {
       QString a = action->data().toString();
       if (!a.isEmpty()) {
+            if (ImportMidiPanel::isMidiFile(a)) {
+                  importmidi_panel->setMidiFile(a);
+                  if (!importmidi_panel->isVisible())
+                        showMidiImportPanel(true);
+                  }
             Score* score = readScore(a);
             if (score) {
                   setCurrentScoreView(appendScore(score));
@@ -1438,7 +1456,7 @@ void MuseScore::setCurrentScoreView(ScoreView* view)
             changeState(STATE_DISABLED);
             setWindowTitle("MuseScore");
             if (_navigator && _navigator->widget())
-                  static_cast<Navigator*>(_navigator->widget())->setScore(0);
+                  navigator()->setScore(0);
             if (inspector)
                   inspector->setElement(0);
             viewModeCombo->setEnabled(false);
@@ -1489,7 +1507,7 @@ void MuseScore::setCurrentScoreView(ScoreView* view)
       setPos(cs->inputPos());
       _statusBar->showMessage(cs->filePath(), 2000);
       if (_navigator && _navigator->widget())
-            static_cast<Navigator*>(_navigator->widget())->setScoreView(view);
+            navigator()->setScoreView(view);
       }
 
 //---------------------------------------------------------
@@ -1524,7 +1542,13 @@ void MuseScore::dropEvent(QDropEvent* event)
             int view = -1;
             foreach(const QUrl& u, event->mimeData()->urls()) {
                   if (u.scheme() == "file") {
-                        Score* score = readScore(u.toLocalFile());
+                        QString file = u.toLocalFile();
+                        if (ImportMidiPanel::isMidiFile(file)) {
+                              importmidi_panel->setMidiFile(file);
+                              if (!importmidi_panel->isVisible())
+                                    showMidiImportPanel(true);
+                              }
+                        Score* score = readScore(file);
                         if (score) {
                               view = appendScore(score);
                               updateRecentScores(score);
@@ -1604,7 +1628,7 @@ void MuseScore::showPlayPanel(bool visible)
 
             playPanel->setGain(synti->gain());
             playPanel->setScore(cs);
-            playPanel->move(preferences.playPanelPos);
+//            playPanel->move(preferences.playPanelPos);
             }
       playPanel->setVisible(visible);
       playId->setChecked(visible);
@@ -1626,7 +1650,7 @@ void MuseScore::closePlayPanel()
 void MuseScore::cmdAppendMeasures()
       {
       if (cs) {
-		if (measuresDialog == 0)
+            if (measuresDialog == 0)
                   measuresDialog = new MeasuresDialog;
             measuresDialog->show();
             }
@@ -1648,12 +1672,12 @@ MeasuresDialog::MeasuresDialog(QWidget* parent)
 //---------------------------------------------------------
 
 void MeasuresDialog::accept()
-	{
-	int n = measures->value();
+      {
+      int n = measures->value();
       if (mscore->currentScore())
             mscore->currentScoreView()->cmdAppendMeasures(n, Element::MEASURE);
       done(1);
-	}
+      }
 
 //---------------------------------------------------------
 //   midiinToggled
@@ -2881,6 +2905,8 @@ void MuseScore::writeSettings()
       settings.setValue("pos", pos());
       settings.setValue("maximized", isMaximized());
       settings.setValue("showPanel", paletteBox && paletteBox->isVisible());
+      settings.setValue("showInspector", inspector && inspector->isVisible());
+      settings.setValue("showPianoKeyboard", _pianoTools && _pianoTools->isVisible());
       settings.setValue("state", saveState());
       settings.setValue("splitScreen", _splitScreen);
       settings.setValue("debuggerSplitter", mainWindow->saveState());
@@ -2943,10 +2969,14 @@ void MuseScore::readSettings()
       settings.beginGroup("MainWindow");
       resize(settings.value("size", QSize(1024, 768)).toSize());
       mainWindow->restoreState(settings.value("debuggerSplitter").toByteArray());
+      mainWindow->setOpaqueResize(false);
+
       move(settings.value("pos", QPoint(10, 10)).toPoint());
       if (settings.value("maximized", false).toBool())
             showMaximized();
       mscore->showPalette(settings.value("showPanel", "1").toBool());
+      mscore->showInspector(settings.value("showInspector", "0").toBool());
+      mscore->showPianoKeyboard(settings.value("showPianoKeyboard", "0").toBool());
 
       restoreState(settings.value("state").toByteArray());
       _horizontalSplit = settings.value("split", true).toBool();
@@ -3704,14 +3734,14 @@ void MuseScore::editRaster()
 
 void MuseScore::showPianoKeyboard(bool on)
       {
+      if (_pianoTools == 0) {
+            QAction* a = getAction("toogle-piano");
+            _pianoTools = new PianoTools(this);
+            addDockWidget(Qt::BottomDockWidgetArea, _pianoTools);
+            connect(_pianoTools, SIGNAL(keyPressed(int, bool)), SLOT(midiNoteReceived(int, bool)));
+            connect(_pianoTools, SIGNAL(pianoVisible(bool)), a, SLOT(setChecked(bool)));
+            }
       if (on) {
-            if (_pianoTools == 0) {
-                  QAction* a = getAction("toogle-piano");
-                  _pianoTools = new PianoTools(this);
-                  addDockWidget(Qt::BottomDockWidgetArea, _pianoTools);
-                  connect(_pianoTools, SIGNAL(keyPressed(int, bool)), SLOT(midiNoteReceived(int, bool)));
-                  connect(_pianoTools, SIGNAL(pianoVisible(bool)), a, SLOT(setChecked(bool)));
-                  }
             _pianoTools->show();
             }
       else {
@@ -4257,7 +4287,7 @@ void MuseScore::cmd(QAction* a, const QString& cmd)
       else if (cmd == "rewind") {
             seq->rewindStart();
             if (playPanel)
-                  playPanel->heartBeat(0, 0);
+                  playPanel->heartBeat(0, 0, 0);
             }
       else if (cmd == "play-next-measure")
             seq->nextMeasure();
@@ -4343,6 +4373,8 @@ void MuseScore::cmd(QAction* a, const QString& cmd)
             showPlayPanel(a->isChecked());
       else if (cmd == "toggle-navigator")
             showNavigator(a->isChecked());
+      else if (cmd == "toggle-midiimportpanel")
+            showMidiImportPanel(a->isChecked());
       else if (cmd == "toggle-mixer")
             showMixer(a->isChecked());
       else if (cmd == "synth-control")

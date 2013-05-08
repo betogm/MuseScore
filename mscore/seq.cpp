@@ -153,7 +153,7 @@ Seq::Seq()
       peakTimer[1]       = 0;
 
       heartBeatTimer = new QTimer(this);
-      connect(heartBeatTimer, SIGNAL(timeout()), this, SLOT(heartBeat()));
+      connect(heartBeatTimer, SIGNAL(timeout()), this, SLOT(heartBeatTimeout()));
 
       noteTimer = new QTimer(this);
       noteTimer->setSingleShot(true);
@@ -195,7 +195,6 @@ void Seq::setScoreView(ScoreView* v)
       playlistChanged = true;
       _synti->reset();
       if (cs) {
-            // _synti->setState(cs->synthesizerState());
             initInstruments();
             seek(cs->playPos());
             }
@@ -724,17 +723,18 @@ void Seq::collectEvents()
             return;
       events.clear();
 
+      mutex.lock();
       cs->renderMidi(&events);
       endTick = 0;
+
       if (!events.empty()) {
             auto e = events.cend();
             --e;
             endTick = e->first;
             }
+      playPos  = events.cbegin();
+      mutex.unlock();
 
-      PlayPanel* pp = mscore->getPlayPanel();
-      if (pp)
-            pp->setEndpos(endTick);
       playlistChanged = false;
       cs->setPlaylistDirty(false);
       }
@@ -756,13 +756,6 @@ int Seq::getCurTick()
 void Seq::setRelTempo(double relTempo)
       {
       guiToSeq(SeqMsg(SEQ_TEMPO_CHANGE, relTempo));
-
-      PlayPanel* pp = mscore->getPlayPanel();
-      if (pp) {
-            double t = cs->tempomap()->tempo(playPos->first) * relTempo;
-            pp->setTempo(t);
-            pp->setRelTempo(relTempo);
-            }
       }
 
 //---------------------------------------------------------
@@ -777,7 +770,11 @@ void Seq::setPos(int utick)
             return;
       stopNotes();
 
-      int ucur = cs->repeatList()->utick2tick(playPos->first);
+      int ucur;
+      if (playPos != events.end())
+            ucur = cs->repeatList()->utick2tick(playPos->first);
+      else
+            ucur = utick - 1;
       if (utick != ucur)
             updateSynthesizerState(ucur, utick);
 
@@ -799,24 +796,9 @@ void Seq::seek(int utick)
 
       if (events.empty() || cs->playlistDirty() || playlistChanged)
             collectEvents();
-      int tick = cs->repeatList()->utick2tick(utick);
+      int tick     = cs->repeatList()->utick2tick(utick);
       Segment* seg = cs->tick2segment(tick);
-      if (seg)
-            mscore->currentScoreView()->moveCursor(seg, -1);
-      cs->setPlayPos(utick);
-      cs->setLayoutAll(false);
-      cs->end();
-
-      if (cs->playMode() == PLAYMODE_AUDIO) {
-            ogg_int64_t sp = cs->utick2utime(utick) * MScore::sampleRate;
-            ov_pcm_seek(&vf, sp);
-            }
-      guiToSeq(SeqMsg(SEQ_SEEK, utick));
-
-      guiPos = events.upper_bound(utick);
-      mscore->setPos(utick);
-      unmarkNotes();
-      cs->update();
+      seek(utick, seg);
       }
 
 //---------------------------------------------------------
@@ -826,7 +808,9 @@ void Seq::seek(int utick)
 
 void Seq::seek(int utick, Segment* seg)
       {
-      mscore->currentScoreView()->moveCursor(seg, -1);
+      if (seg)
+            mscore->currentScoreView()->moveCursor(seg, -1);
+
       cs->setPlayPos(utick);
       cs->setLayoutAll(false);
       cs->end();
@@ -1109,7 +1093,7 @@ void Seq::putEvent(const NPlayEvent& event)
 //    update GUI
 //---------------------------------------------------------
 
-void Seq::heartBeat()
+void Seq::heartBeatTimeout()
       {
       SynthControl* sc = mscore->getSynthControl();
       if (sc && _driver) {
@@ -1135,10 +1119,7 @@ void Seq::heartBeat()
 
       if (state != TRANSPORT_PLAY)
             return;
-      PlayPanel* pp = mscore->getPlayPanel();
       int endTime = playTime;
-      if (pp)
-            pp->heartBeat2(endTime);
 
       mutex.lock();
       auto ppos = playPos;
@@ -1175,8 +1156,8 @@ void Seq::heartBeat()
       int tick = cs->repeatList()->utick2tick(utick);
       mscore->currentScoreView()->moveCursor(tick);
       mscore->setPos(tick);
-      if (pp)
-            pp->heartBeat(tick, utick);
+
+      emit(heartBeat(tick, utick, endTime));
 
       PianorollEditor* pre = mscore->getPianorollEditor();
       if (pre && pre->isVisible())
@@ -1202,3 +1183,13 @@ void Seq::updateSynthesizerState(int tick1, int tick2)
                   playEvent(i1->second);
             }
       }
+
+//---------------------------------------------------------
+//   curTempo
+//---------------------------------------------------------
+
+double Seq::curTempo() const
+      {
+      return cs->tempomap()->tempo(playPos->first);
+      }
+

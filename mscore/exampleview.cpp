@@ -25,10 +25,11 @@
 ExampleView::ExampleView(QWidget* parent)
    : QFrame(parent)
       {
+      _score = 0;
       setAcceptDrops(true);
       setFocusPolicy(Qt::StrongFocus);
       double mag = preferences.mag;
-      _matrix    = QTransform(mag, 0.0, 0.0, mag, 10.0, -30.0);
+      _matrix    = QTransform(mag, 0.0, 0.0, mag, 10.0, -45.0);
       imatrix    = _matrix.inverted();
       }
 
@@ -59,11 +60,13 @@ void ExampleView::adjustCanvasPosition(const Element* el, bool playBack)
 
 void ExampleView::setScore(Score* s)
       {
+      delete _score;
       _score = s;
       _score->addViewer(this);
       _score->setLayoutMode(LayoutLine);
       _score->updateNotes();
       _score->doLayout();
+      update();
       }
 
 void ExampleView::removeScore()
@@ -310,3 +313,20 @@ void ExampleView::dropEvent(QDropEvent* event)
       dragElement = 0;
       setDropTarget(0);
       }
+
+//---------------------------------------------------------
+//   mousePressEvent
+//---------------------------------------------------------
+
+void ExampleView::mousePressEvent(QMouseEvent* event)
+      {
+      QPointF pos(imatrix.map(QPointF(event->pos())));
+      foreach (Element* e, elementsAt(pos)) {
+            if (e->type() == Element::NOTE) {
+                  emit noteClicked(static_cast<Note*>(e));
+                  break;
+                  }
+            }
+      }
+
+

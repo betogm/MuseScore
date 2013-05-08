@@ -24,8 +24,17 @@ static std::vector<NoteGroup> noteGroups {
       { Fraction(4,4),
             Groups( { { 4, 768}, { 8, 272}, {12, 768}, {16, 273}, {20, 768}, {24, 272}, {28, 768} })
             },
+      { Fraction(3,4),
+            Groups( { { 8, 273}, {16, 273} })
+            },
       { Fraction(2,4),
             Groups( { { 8, 273}, {0, 0} })
+            },
+      { Fraction(6,8),
+            Groups( { { 12, 273}, {0, 0} })
+            },
+      { Fraction(12,8),
+            Groups( { { 12, 273}, {24, 273}, {36, 273} })
             },
       };
 
@@ -37,18 +46,19 @@ BeamMode Groups::endBeam(ChordRest* cr)
       {
       Q_ASSERT(cr->staff());
 
-      TDuration d = cr->durationType();
       if (cr->tuplet() && !cr->tuplet()->elements().isEmpty()) {
             if (cr->tuplet()->elements().front() == cr)     // end beam at tuplet
                   return BeamMode::BEGIN;
             return BeamMode::AUTO;
             }
 
-      int type  = int(d.type()) - int(TDuration::DurationType::V_EIGHT);
+      TDuration d = cr->durationType();
+/*      int type    = int(d.type()) - int(TDuration::DurationType::V_EIGHT);
       if (type < 0 || type > 3)
             return BeamMode::AUTO;
-
-      return cr->staff()->group(cr->tick()).beamMode(cr->rtick(), d.type());
+  */
+      const Groups& g = cr->staff()->group(cr->tick());
+      return g.beamMode(cr->rtick(), d.type());
       }
 
 //---------------------------------------------------------
