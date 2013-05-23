@@ -27,6 +27,8 @@
 #include "libmscore/note.h"
 #include "libmscore/stem.h"
 
+namespace Ms {
+
 enum { COL_PITCH, COL_NOTE, COL_SHORTCUT, COL_NAME };
 
 //---------------------------------------------------------
@@ -316,7 +318,7 @@ void EditDrumset::updateExample()
       Stem* stem = new Stem(gscore);
       stem->setLen((up ? -3.0 : 3.0) * gscore->spatium());
       chord->setStem(stem);
-      stem->setPos(note->stemPos(up));
+      stem->setPos(chord->stemPos());
       drumNote->add(0,  chord, qApp->translate("drumset", qPrintable(nDrumset.name(pitch))));
       }
 
@@ -378,4 +380,5 @@ void EditDrumset::save()
             QMessageBox::critical(this, tr("MuseScore: Write Drumset"), s);
             }
       }
+}
 

@@ -29,6 +29,8 @@
 #include "instrtemplate.h"
 #include "barline.h"
 
+namespace Ms {
+
 //---------------------------------------------------------
 //   idx
 //---------------------------------------------------------
@@ -361,11 +363,25 @@ void Staff::removeTimeSig(TimeSig* timesig)
 
 //---------------------------------------------------------
 //   Staff::key
+//
+//    locates the key sig currently in effect at tick
 //---------------------------------------------------------
 
 KeySigEvent Staff::key(int tick) const
       {
       return _keymap->key(tick);
+      }
+
+//---------------------------------------------------------
+//   Staff::nextKeyTick
+//
+//    return the tick at which the key sig after tick is located
+//    return 0, if no such a key sig
+//---------------------------------------------------------
+
+int Staff::nextKeyTick(int tick) const
+      {
+      return _keymap->nextKeyTick(tick);
       }
 
 //---------------------------------------------------------
@@ -449,17 +465,22 @@ void Staff::read(XmlReader& e)
                   e.readNext();
                   }
             else if (tag == "barLineSpan") {
-                  _barLineSpan = e.readInt();
+// WARNING: following statement assumes number of staff lines to be correctly set
+                  // must read attributes before reading the main value
                   int defaultSpan = (lines() == 1 ? BARLINE_SPAN_1LINESTAFF_FROM : 0);
                   _barLineFrom = e.attribute("from", QString::number(defaultSpan)).toInt();
-// WARNING: following statement assume staff type is correctly set
-                  // if no bar line or single staff span, set _barLineTo to this staff height
-                  // if span to another staff (yet to be read), set to unknown
-                  // (Score::read() will retrieve the correct height of the target staff)
-                  defaultSpan = _barLineSpan <= 1 ?
-                              (lines() == 1 ? BARLINE_SPAN_1LINESTAFF_TO : (lines() - 1) * 2)
-                              : UNKNOWN_BARLINE_TO;
+                  // the proper default SpanTo depends upon the barLineSpan
+                  // as we do not know it yet, set a generic (UNKNOWN) default
+                  defaultSpan = UNKNOWN_BARLINE_TO;
                   _barLineTo = e.intAttribute("to", defaultSpan);
+                  // ready to read the main value...
+                  _barLineSpan = e.readInt();
+                  //...and to adjust the SpanTo value if the source did not provide an explicit value
+                  // if no bar line or single staff span, set _barLineTo to this staff height
+                  // if span to another staff (yet to be read), leave as unknown
+                  // (Score::read() will retrieve the correct height of the target staff)
+                  if (_barLineTo == UNKNOWN_BARLINE_TO && _barLineSpan <= 1)
+                        _barLineTo = lines() == 1 ? BARLINE_SPAN_1LINESTAFF_TO : (lines() - 1) * 2;
                   }
             else if (tag == "distOffset")
                   _userDist = e.readDouble() * spatium();
@@ -758,8 +779,8 @@ void Staff::init(const InstrumentTemplate* t, const StaffType* staffType, int ci
 
       // use selected staff type
       setStaffType(st);
-      if (st->group() != TAB_STAFF)             // if not TAB (where num of staff lines is determined by TAB style)
-            setLines(t->staffLines[cidx]);      // use number of lines from instr. template
+//      if (st->group() == PITCHED_STAFF)         // if PITCHED (in other staff groups num of lines is determined by style)
+//            setLines(t->staffLines[cidx]);      // use number of lines from instr. template
       }
 
 //---------------------------------------------------------
@@ -822,4 +843,6 @@ void Staff::setInitialClef(ClefType ct)
       {
       _initialClef = ClefTypeList(ct, ct);
       }
+
+}
 

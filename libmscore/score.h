@@ -31,6 +31,10 @@
 #include "accidental.h"
 #include "note.h"
 
+class QPainter;
+
+namespace Ms {
+
 class TempoMap;
 struct TEvent;
 class SigEvent;
@@ -84,7 +88,6 @@ class Spanner;
 class MuseScoreView;
 class LinkedElements;
 class Fingering;
-class QPainter;
 class FiguredBass;
 class UndoCommand;
 class Cursor;
@@ -190,7 +193,6 @@ enum LayoutFlag {
       };
 
 typedef QFlags<LayoutFlag> LayoutFlags;
-Q_DECLARE_OPERATORS_FOR_FLAGS(LayoutFlags)
 
 //---------------------------------------------------------
 //   PlayMode
@@ -350,6 +352,8 @@ class Score : public QObject {
       Audio* _audio;
       bool _showOmr;
       PlayMode _playMode;
+
+      qreal _noteHeadWidth;
 
       //------------------
 
@@ -514,7 +518,7 @@ class Score : public QObject {
       Segment* setNoteRest(Segment*, int track, NoteVal nval, Fraction, MScore::Direction stemDirection = MScore::AUTO);
       void changeCRlen(ChordRest* cr, const TDuration&);
 
-      Fraction makeGap(Segment*, int track, const Fraction&, Tuplet*);
+      Fraction makeGap(Segment*, int track, const Fraction&, Tuplet*, bool keepChord = false);
       bool makeGap1(int tick, int staffIdx, Fraction len);
 
       Rest* addRest(int tick, int track, TDuration, Tuplet*);
@@ -918,15 +922,22 @@ class Score : public QObject {
       Q_INVOKABLE void appendMeasures(int);
       Q_INVOKABLE void addText(const QString&, const QString&);
       Q_INVOKABLE Cursor* newCursor();
-      qreal computeMinWidth(Segment* fs) const;
+      qreal computeMinWidth(Segment* fs);
       void updateBarLineSpans(int idx, int linesOld, int linesNew);
       Sym& sym(int id) { return symbols[symIdx()][id]; }
+
+      qreal noteHeadWidth() const   { return _noteHeadWidth; }
 
       friend class ChangeSynthesizerState;
       };
 
 extern Score* gscore;
 extern void fixTicks();
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(LayoutFlags)
+
+}     // namespace Ms
+
 
 #endif
 

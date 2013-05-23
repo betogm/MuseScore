@@ -20,6 +20,8 @@
 #include "sym.h"
 #include "mscore.h"
 
+namespace Ms {
+
 //---------------------------------------------------------
 //   Bracket
 //---------------------------------------------------------
@@ -27,7 +29,7 @@
 Bracket::Bracket(Score* s)
    : Element(s)
       {
-      _bracketType    = BRACKET_AKKOLADE;
+      _bracketType    = BRACKET_BRACE;
       h2          = 3.5 * spatium();
       _column     = 0;
       _span       = 0;
@@ -52,10 +54,12 @@ void Bracket::setHeight(qreal h)
 qreal Bracket::width() const
       {
       qreal w;
-      if (bracketType() == BRACKET_AKKOLADE)
+      if (bracketType() == BRACKET_BRACE)
             w = point(score()->styleS(ST_akkoladeWidth) + score()->styleS(ST_akkoladeBarDistance));
-      else
+      else if (bracketType() == BRACKET_NORMAL)
             w = point(score()->styleS(ST_bracketWidth) + score()->styleS(ST_bracketDistance));
+      else if (bracketType() == BRACKET_SQUARE)
+            w = point(score()->styleS(ST_staffLineWidth) + Spatium(0.5));
       return w;
       }
 
@@ -69,7 +73,7 @@ void Bracket::layout()
       if (h2 == 0.0)
             return;
 
-      if (bracketType() == BRACKET_AKKOLADE) {
+      if (bracketType() == BRACKET_BRACE) {
             qreal w = point(score()->styleS(ST_akkoladeWidth));
 
 #define XM(a) (a+700)*w/700
@@ -110,6 +114,15 @@ void Bracket::layout()
             qreal h = (-y + h2) * 2;
             bbox().setRect(x, y, w, h);
             }
+      else if (bracketType() == BRACKET_SQUARE) {
+            qreal _spatium = spatium();
+            qreal w = score()->styleS(ST_staffLineWidth).val() * _spatium * .5;
+            qreal x = -w;
+            qreal y = -w;
+            qreal h = (h2 + w) * 2 ;
+            w      += (.5 * spatium() + 3* w);
+            bbox().setRect(x, y, w, h);
+            }
       }
 
 //---------------------------------------------------------
@@ -120,7 +133,7 @@ void Bracket::draw(QPainter* painter) const
       {
       if (h2 == 0.0)
             return;
-      if (bracketType() == BRACKET_AKKOLADE) {
+      if (bracketType() == BRACKET_BRACE) {
             painter->setPen(Qt::NoPen);
             painter->setBrush(QBrush(curColor()));
             painter->drawPath(path);
@@ -141,6 +154,16 @@ void Bracket::draw(QPainter* painter) const
             symbols[idx][brackettipsRightUp].draw(painter,   mags, QPointF(x, y1));
             symbols[idx][brackettipsRightDown].draw(painter, mags, QPointF(x, y2));
             }
+      else if (bracketType() == BRACKET_SQUARE) {
+            qreal h = 2 * h2;
+            qreal _spatium = spatium();
+            qreal w = score()->styleS(ST_staffLineWidth).val() * _spatium;
+            QPen pen(curColor(), w, Qt::SolidLine, Qt::SquareCap);
+            painter->setPen(pen);
+            painter->drawLine(QLineF(0.0, 0.0, 0.0, h));
+            painter->drawLine(QLineF(0.0, 0.0, w + .5 *_spatium, 0.0));
+            painter->drawLine(QLineF(0.0, h  , w + .5 *_spatium, h));
+            }
       }
 
 //---------------------------------------------------------
@@ -150,11 +173,14 @@ void Bracket::draw(QPainter* painter) const
 void Bracket::write(Xml& xml) const
       {
       switch(bracketType()) {
-            case BRACKET_AKKOLADE:
-                  xml.stag("Bracket type=\"Akkolade\"");
+            case BRACKET_BRACE:
+                  xml.stag("Bracket type=\"Brace\"");
                   break;
             case BRACKET_NORMAL:
                   xml.stag("Bracket");
+                  break;
+            case BRACKET_SQUARE:
+                  xml.stag("Bracket type=\"Square\"");
                   break;
             case NO_BRACKET:
                   break;
@@ -175,8 +201,12 @@ void Bracket::read(XmlReader& e)
 
       if (t == "Normal")
             setBracketType(BRACKET_NORMAL);
-      else if (t == "Akkolade")
-            setBracketType(BRACKET_AKKOLADE);
+      else if (t == "Akkolade")  //compatibility, not used anymore
+            setBracketType(BRACKET_BRACE);
+      else if (t == "Brace")
+            setBracketType(BRACKET_BRACE);
+      else if (t == "Square")
+            setBracketType(BRACKET_SQUARE);
       else
             qDebug("unknown brace type <%s>", qPrintable(t));
 
@@ -351,4 +381,6 @@ bool Bracket::edit(MuseScoreView*, int, int key, Qt::KeyboardModifiers modifiers
             }
       return false;
       }
+
+}
 

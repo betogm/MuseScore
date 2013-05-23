@@ -23,6 +23,10 @@
 #include "durationtype.h"
 #include "noteevent.h"
 
+class QPainter;
+
+namespace Ms {
+
 class Tie;
 class Chord;
 class NoteEvent;
@@ -31,7 +35,6 @@ class Score;
 class Sym;
 class MuseScoreView;
 class Bend;
-class QPainter;
 class AccidentalState;
 class Accidental;
 class NoteDot;
@@ -118,10 +121,10 @@ class Note : public Element {
       Q_PROPERTY(bool mirror                   READ mirror)
       Q_PROPERTY(bool small                    READ small             WRITE undoSetSmall)
       Q_PROPERTY(qreal tuning                  READ tuning            WRITE undoSetTuning)
-      Q_PROPERTY(MScore::ValueType veloType    READ veloType          WRITE undoSetVeloType)
+      Q_PROPERTY(Ms::MScore::ValueType veloType    READ veloType          WRITE undoSetVeloType)
       Q_PROPERTY(int veloOffset                READ veloOffset        WRITE undoSetVeloOffset)
-      Q_PROPERTY(MScore::DirectionH userMirror READ userMirror        WRITE undoSetUserMirror)
-      Q_PROPERTY(MScore::Direction dotPosition READ dotPosition       WRITE undoSetDotPosition)
+      Q_PROPERTY(Ms::MScore::DirectionH userMirror READ userMirror        WRITE undoSetUserMirror)
+      Q_PROPERTY(Ms::MScore::Direction dotPosition READ dotPosition       WRITE undoSetDotPosition)
       Q_PROPERTY(NoteHeadGroup     headGroup   READ headGroup         WRITE undoSetHeadGroup)
       Q_PROPERTY(NoteHeadType      headType    READ headType          WRITE undoSetHeadType)
       Q_ENUMS(NoteHeadGroup)
@@ -255,8 +258,6 @@ class Note : public Element {
       void read(XmlReader&);
       void write(Xml& xml) const;
 
-      QPointF stemPos(bool upFlag) const;    ///< Point to connect stem.
-
       bool acceptDrop(MuseScoreView*, const QPointF&, Element*) const;
       Element* drop(const DropData&);
 
@@ -288,8 +289,6 @@ class Note : public Element {
 
       void setOnTimeOffset(int v);
       void setOffTimeOffset(int v);
-
-//      void setBend(Bend* b)               { _bend = b;    }
 
       int customizeVelocity(int velo) const;
       Q_INVOKABLE NoteDot* dot(int n)       { return _dots[n];           }
@@ -334,11 +333,14 @@ class Note : public Element {
       void setMark(bool v) const    { _mark = v;   }
       };
 
-Q_DECLARE_METATYPE(Note::NoteHeadGroup)
-Q_DECLARE_METATYPE(Note::NoteHeadType)
-
 extern Sym* noteHeadSym(bool up, int group, int n);
 extern const SymId noteHeads[2][Note::HEAD_GROUPS][HEAD_TYPES];
+
+
+}     // namespace Ms
+
+Q_DECLARE_METATYPE(Ms::Note::NoteHeadGroup)
+Q_DECLARE_METATYPE(Ms::Note::NoteHeadType)
 
 #endif
 

@@ -20,7 +20,8 @@
 
 #include "libmscore/xml.h"
 #include "sparm_p.h"
-// #include "synti.h"
+
+using namespace Ms;
 
 //---------------------------------------------------------
 //   SyntiParameterData
@@ -64,6 +65,10 @@ SyntiParameterData::SyntiParameterData(int i, const QString& name, const QString
       _type =  SP_STRING;
       _sval = val;
       }
+
+SyntiParameterData::~SyntiParameterData()
+{
+}
 
 SyntiParameterData::SyntiParameterData(const SyntiParameterData& pd)
    : QSharedData(pd)

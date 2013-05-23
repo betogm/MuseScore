@@ -16,6 +16,8 @@
 #include "system.h"
 #include "score.h"
 
+namespace Ms {
+
 //---------------------------------------------------------
 //   LedgerLine
 //---------------------------------------------------------
@@ -60,4 +62,17 @@ void LedgerLine::layout()
       setLineWidth(score()->styleS(ST_ledgerLineWidth));
       Line::layout();
       }
+
+//---------------------------------------------------------
+//   draw
+//---------------------------------------------------------
+
+void LedgerLine::draw(QPainter* painter) const
+      {
+      if(chord()->crossMeasure() == CROSSMEASURE_SECOND)
+            return;
+      Line::draw(painter);
+      }
+
+}
 

@@ -15,6 +15,8 @@
 
 #include "symbol.h"
 
+namespace Ms {
+
 class Chord;
 
 //---------------------------------------------------------
@@ -33,8 +35,11 @@ class Hook : public Symbol {
       void setHookType(int v);
       int hookType() const             { return _hookType; }
       virtual void layout();
-      Chord* chord() const             { return (Chord*)parent(); }
+      virtual void draw(QPainter*) const;
+      Chord* chord() const            { return (Chord*)parent(); }
       };
 
+
+}     // namespace Ms
 #endif
 

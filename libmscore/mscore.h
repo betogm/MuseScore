@@ -13,6 +13,8 @@
 #ifndef __MSCORE_H__
 #define __MSCORE_H__
 
+namespace Ms {
+
 #define MSC_VERSION     "1.24"
 static const int MSCVERSION = 124;
 
@@ -120,7 +122,7 @@ enum ArticulationType {
 //---------------------------------------------------------
 
 enum BracketType {
-      BRACKET_NORMAL, BRACKET_AKKOLADE, NO_BRACKET = -1
+      BRACKET_NORMAL, BRACKET_BRACE, BRACKET_SQUARE, NO_BRACKET = -1
       };
 
 //---------------------------------------------------------
@@ -147,9 +149,6 @@ enum AlignmentFlags {
       ALIGN_HMASK = ALIGN_LEFT | ALIGN_RIGHT | ALIGN_HCENTER,
       ALIGN_VMASK = ALIGN_TOP | ALIGN_BOTTOM | ALIGN_VCENTER | ALIGN_BASELINE
       };
-
-Q_DECLARE_FLAGS(Align, AlignmentFlags);
-Q_DECLARE_OPERATORS_FOR_FLAGS(Align);
 
 //---------------------------------------------------------
 //   OffsetType
@@ -218,6 +217,16 @@ enum AccidentalVal {
       NATURAL = 0,
       FLAT    = -1,
       FLAT2   = -2
+      };
+
+//---------------------------------------------------------
+//    KeySigNaturals (positions of naturals in key sig. changes)
+//---------------------------------------------------------
+
+enum KeySigNatural {
+      NAT_NONE   = 0,             // no naturals, except for change to CMaj/Amin
+      NAT_BEFORE = 1,             // naturals before accidentals
+      NAT_AFTER  = 2              // naturals after accidentals (but always before if going sharps <=> flats)
       };
 
 //---------------------------------------------------------
@@ -398,13 +407,6 @@ class MScore : public QObject {
       static bool testMode;
       };
 
-Q_DECLARE_METATYPE(MScore::ValueType)
-Q_DECLARE_METATYPE(MScore::Direction)
-Q_DECLARE_METATYPE(MScore::DirectionH)
-
-Q_ENUMS(DirectionH)
-Q_DECLARE_METATYPE(BeamMode)
-
 static const int HEAD_TYPES = 4;
 
 //---------------------------------------------------------
@@ -426,6 +428,18 @@ inline static int restrict(int val, int min, int max) {
             return min;
       return val;
       }
+
+Q_DECLARE_FLAGS(Align, AlignmentFlags);
+Q_DECLARE_OPERATORS_FOR_FLAGS(Align);
+Q_ENUMS(DirectionH)
+
+}     // namespace Ms
+
+Q_DECLARE_METATYPE(Ms::BeamMode)
+Q_DECLARE_METATYPE(Ms::MScore::ValueType)
+Q_DECLARE_METATYPE(Ms::MScore::Direction)
+Q_DECLARE_METATYPE(Ms::MScore::DirectionH)
+
 
 #endif
 

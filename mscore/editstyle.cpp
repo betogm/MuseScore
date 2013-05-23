@@ -32,6 +32,8 @@
 #include "libmscore/chordlist.h"
 #include "libmscore/figuredbass.h"
 
+namespace Ms {
+
 extern QString iconPath, iconGroup;
 
 //---------------------------------------------------------
@@ -242,7 +244,8 @@ void EditStyle::getValues()
 
       if (lstyle.valueSt(ST_chordDescriptionFile) != chordDescriptionFile->text()) {
             ChordList* cl = new ChordList();
-            cl->read("chords.xml");
+            if (lstyle.valueB(ST_chordsXmlFile))
+                  cl->read("chords.xml");
             cl->read(chordDescriptionFile->text());
             lstyle.setChordList(cl);
             lstyle.set(ST_chordDescriptionFile, chordDescriptionFile->text());
@@ -383,6 +386,10 @@ void EditStyle::getValues()
       lstyle.set(ST_minHarmonyDistance,      Spatium(minHarmonyDistance->value()));
 
       lstyle.set(ST_tabClef, clefTab1->isChecked() ? CLEF_TAB : CLEF_TAB2);
+
+      lstyle.set(ST_crossMeasureValues,      crossMeasureValues->isChecked());
+      lstyle.set(ST_keySigNaturals,          radioKeySigNatNone->isChecked() ? NAT_NONE :
+                  (radioKeySigNatBefore->isChecked() ? NAT_BEFORE : NAT_AFTER) );
       }
 
 //---------------------------------------------------------
@@ -602,6 +609,11 @@ void EditStyle::setValues()
 
       clefTab1->setChecked(lstyle.valueI(ST_tabClef) == CLEF_TAB);
       clefTab2->setChecked(lstyle.valueI(ST_tabClef) == CLEF_TAB2);
+
+      crossMeasureValues->setChecked(lstyle.valueB(ST_crossMeasureValues));
+      radioKeySigNatNone->setChecked  (lstyle.valueB(ST_keySigNaturals) == NAT_NONE);
+      radioKeySigNatBefore->setChecked(lstyle.valueB(ST_keySigNaturals) == NAT_BEFORE);
+      radioKeySigNatAfter->setChecked (lstyle.valueB(ST_keySigNaturals) == NAT_AFTER);
       }
 
 //---------------------------------------------------------
@@ -656,4 +668,5 @@ void EditStyle::setPage(int row)
       {
       pageList->setCurrentRow(row);
       }
+}
 

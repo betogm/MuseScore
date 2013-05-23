@@ -17,6 +17,8 @@
 
 class QPainter;
 
+namespace Ms {
+
 // layout break subtypes:
 
 enum LayoutBreakType {
@@ -34,6 +36,7 @@ class LayoutBreak : public Element {
       LayoutBreakType _layoutBreakType;
       qreal lw;
       QPainterPath path;
+      QPainterPath path2;
       qreal _pause;
       bool _startWithLongNames;
       bool _startWithMeasureOne;
@@ -69,4 +72,6 @@ class LayoutBreak : public Element {
       virtual QVariant propertyDefault(P_ID) const;
       };
 
+
+}     // namespace Ms
 #endif

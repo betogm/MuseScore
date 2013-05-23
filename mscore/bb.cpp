@@ -32,6 +32,8 @@
 #include "libmscore/segment.h"
 #include "libmscore/keysig.h"
 
+namespace Ms {
+
 //---------------------------------------------------------
 //   BBTrack
 //---------------------------------------------------------
@@ -488,6 +490,7 @@ Score::FileError importBB(Score* score, const QString& name)
             else
                   h->setBaseTpc(INVALID_TPC);
             h->setId(c.extension);
+            h->setNameFromId();
             h->render();
             s->add(h);
             }
@@ -970,4 +973,5 @@ int BBTrack::separateVoices(int /*maxVoices*/)
       {
       return 1;
       }
+}
 

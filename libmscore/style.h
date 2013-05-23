@@ -17,6 +17,8 @@
 #include "spatium.h"
 #include "articulation.h"
 
+namespace Ms {
+
 class Xml;
 struct ChordDescription;
 class PageFormat;
@@ -256,6 +258,7 @@ enum StyleIdx {
       // 75
       ST_useGermanNoteNames,
       //
+      ST_chordsXmlFile,
       ST_chordDescriptionFile,
       ST_concertPitch,
       ST_createMultiMeasureRests,
@@ -326,6 +329,8 @@ enum StyleIdx {
       ST_tremoloDistance,
 
       ST_linearStretch,
+      ST_crossMeasureValues,
+      ST_keySigNaturals,
 
       ST_STYLES
       };
@@ -425,4 +430,6 @@ extern const TextStyle defaultTextStyleArray[];
 
 extern void initStyle(MStyle*);
 
+
+}     // namespace Ms
 #endif

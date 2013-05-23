@@ -66,6 +66,8 @@
 #include "libmscore/pitchspelling.h"
 #include "libmscore/chordlist.h"
 
+namespace Ms {
+
 extern bool useFactorySettings;
 
 //---------------------------------------------------------
@@ -1471,7 +1473,7 @@ void HarmonyView::setElement(Element* e)
       else
             hb.bassName->setText(tpc2name(harmony->baseTpc(),germanNames));
       hb.chordId->setValue(harmony->id());
-      hb.chordName->setText(harmony->extensionName());
+      hb.chordName->setText(harmony->hTextName());
       hb.userName->setText(harmony->hUserName());
 
       // need to set header row
@@ -2775,4 +2777,5 @@ void TextLineSegmentView::setElement(Element* e)
       lb.offset2y->setValue(vs->userOff2().y());
       }
 
+}
 

@@ -82,6 +82,8 @@ using std::cout;
 #include "libmscore/jump.h"
 #include "musescore.h"
 
+namespace Ms {
+
 static  const int MAX_SLURS = 8;
 static  const int BRACKSTAVES=64;
 static  const int MAXPARTGROUPS = 8;
@@ -406,7 +408,7 @@ void ExportLy::brackRegister(int brnumber, int bratype, int staffnr, bool start,
       if (end) lybracks[staffnr].brakend=true;
       lybracks[staffnr].brakno=brnumber;
       break;
-    case BRACKET_AKKOLADE:
+    case BRACKET_BRACE:
       if (start) lybracks[staffnr].bracestart=true;
       if (end) lybracks[staffnr].braceend=true;
       lybracks[staffnr].braceno=brnumber;
@@ -4924,4 +4926,5 @@ bool ExportLy::write(const QString& name)
      from bug to "issue", probably will be never, and I will not correct
      for it here. (olav)
  */
+}
 

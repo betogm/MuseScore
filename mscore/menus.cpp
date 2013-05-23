@@ -75,6 +75,8 @@
 #include "libmscore/marker.h"
 #include "libmscore/jump.h"
 
+namespace Ms {
+
 extern bool useFactorySettings;
 
 //---------------------------------------------------------
@@ -358,31 +360,36 @@ Palette* MuseScore::newBreaksPalette()
       qreal _spatium = gscore->spatium();
       Palette* sp = new Palette;
       sp->setName(QT_TRANSLATE_NOOP("Palette", "Breaks && Spacer"));
-      sp->setMag(.7);
+      sp->setMag(1.0);
       sp->setGrid(42, 36);
       sp->setDrawGrid(true);
 
       LayoutBreak* lb = new LayoutBreak(gscore);
       lb->setLayoutBreakType(LAYOUT_BREAK_LINE);
-      sp->append(lb, tr("Line break"));
+      PaletteCell* cell = sp->append(lb, tr("Line break"));
+      cell->mag = 1.2;
 
       lb = new LayoutBreak(gscore);
       lb->setLayoutBreakType(LAYOUT_BREAK_PAGE);
-      sp->append(lb, tr("Page break"));
+      cell = sp->append(lb, tr("Page break"));
+      cell->mag = 1.2;
 
       lb = new LayoutBreak(gscore);
       lb->setLayoutBreakType(LAYOUT_BREAK_SECTION);
-      sp->append(lb, tr("Section break"));
+      cell = sp->append(lb, tr("Section break"));
+      cell->mag = 1.2;
 
       Spacer* spacer = new Spacer(gscore);
-      spacer->setGap(3 * _spatium);
       spacer->setSpacerType(SPACER_DOWN);
-      sp->append(spacer, tr("Staff spacer down"));
+      spacer->setGap(3 * _spatium);
+      cell = sp->append(spacer, tr("Staff spacer down"));
+      cell->mag = .7;
 
       spacer = new Spacer(gscore);
-      spacer->setGap(3 * _spatium);
       spacer->setSpacerType(SPACER_UP);
-      sp->append(spacer, tr("Staff spacer up"));
+      spacer->setGap(3 * _spatium);
+      cell = sp->append(spacer, tr("Staff spacer up"));
+      cell->mag = .7;
       return sp;
       }
 
@@ -513,10 +520,13 @@ Palette* MuseScore::newBracketsPalette()
       Bracket* b1 = new Bracket(gscore);
       b1->setBracketType(BRACKET_NORMAL);
       Bracket* b2 = new Bracket(gscore);
-      b2->setBracketType(BRACKET_AKKOLADE);
+      b2->setBracketType(BRACKET_BRACE);
+      Bracket* b3 = new Bracket(gscore);
+      b3->setBracketType(BRACKET_SQUARE);
 
-      sp->append(b1, tr("Square bracket"));
-      sp->append(b2, tr("Curly bracket"));
+      sp->append(b1, tr("Bracket"));
+      sp->append(b2, tr("Brace"));
+      sp->append(b3, tr("Square"));
 
       return sp;
       }
@@ -612,7 +622,7 @@ Palette* MuseScore::newClefsPalette()
             };
       for (int i = 0; i < 20; ++i) {
             ClefType j = clefs[i];
-            Clef* k = new ::Clef(gscore);
+            Clef* k = new Ms::Clef(gscore);
             k->setClefType(ClefTypeList(j, j));
             sp->append(k, qApp->translate("clefTable", clefTable[j].name));
             }
@@ -1078,4 +1088,5 @@ void MuseScore::addTempo()
             cs->addRefresh(tt->abbox());  // ??
             }
       }
+}
 

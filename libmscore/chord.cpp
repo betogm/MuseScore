@@ -47,6 +47,8 @@
 #include "stemslash.h"
 #include "ledgerline.h"
 
+namespace Ms {
+
 //---------------------------------------------------------
 //   upNote / downNote
 //---------------------------------------------------------
@@ -160,6 +162,7 @@ Chord::Chord(Score* s)
       _stemSlash        = 0;
       _noStem           = false;
       _userPlayEvents   = false;
+      _crossMeasure     = CROSSMEASURE_UNKNOWN;
       setFlags(ELEMENT_MOVABLE | ELEMENT_ON_STAFF);
       }
 
@@ -194,6 +197,7 @@ Chord::Chord(const Chord& c)
       _tremoloChordType = TremoloSingle;
       _tremolo          = 0;
       _noteType         = c._noteType;
+      _crossMeasure     = CROSSMEASURE_UNKNOWN;
       }
 
 //---------------------------------------------------------
@@ -246,18 +250,6 @@ void Chord::setStem(Stem* s)
       }
 
 //---------------------------------------------------------
-//   stemPos
-//    return page coordinates
-//---------------------------------------------------------
-
-QPointF Chord::stemPos() const
-      {
-      if (staff() && staff()->isTabStaff())
-            return (static_cast<StaffTypeTablature*>(staff()->staffType())->chordStemPos(this) * spatium()) + pagePos();
-      return (_up ? downNote() : upNote())->stemPos(_up);
-      }
-
-//---------------------------------------------------------
 //   stemPosX
 //    return page coordinates
 //---------------------------------------------------------
@@ -265,13 +257,35 @@ QPointF Chord::stemPos() const
 qreal Chord::stemPosX() const
       {
       qreal x = pageX();
+      qreal _spatium = spatium();
       if (staff() && staff()->isTabStaff()) {
-            qreal stemX = static_cast<StaffTypeTablature*>(staff()->staffType())->chordStemPosX(this) * spatium();
-            x += stemX;
+            qreal stemX = static_cast<StaffTypeTablature*>(staff()->staffType())->chordStemPosX(this) * _spatium;
+            return x + stemX;
             }
-      else if (_up)
-            x += upNote()->headWidth();
+      if (_up)
+            x += score()->noteHeadWidth();
       return x;
+      }
+
+//---------------------------------------------------------
+//   stemPos
+//    return page coordinates
+//---------------------------------------------------------
+
+QPointF Chord::stemPos() const
+      {
+      qreal _spatium = spatium();
+      if (staff() && staff()->isTabStaff())
+            return (static_cast<StaffTypeTablature*>(staff()->staffType())->chordStemPos(this) * _spatium) + pagePos();
+
+      QPointF p(pagePos());
+      if (_up) {
+            p.rx() += score()->noteHeadWidth();
+            p.ry() += downNote()->pos().y();
+            }
+      else
+            p.ry() += upNote()->pos().y();
+      return p;
       }
 
 //---------------------------------------------------------
@@ -282,9 +296,17 @@ qreal Chord::stemPosX() const
 
 QPointF Chord::stemPosBeam() const
       {
+      qreal _spatium = spatium();
       if (staff() && staff()->isTabStaff())
-            return (static_cast<StaffTypeTablature*>(staff()->staffType())->chordStemPosBeam(this) * spatium()) + pagePos();
-      return (_up ? upNote() : downNote())->stemPos(_up);
+            return (static_cast<StaffTypeTablature*>(staff()->staffType())->chordStemPosBeam(this) * _spatium) + pagePos();
+      QPointF p(pagePos());
+      if (_up) {
+            p.rx() += score()->noteHeadWidth();
+            p.ry() += upNote()->pos().y();
+            }
+      else
+            p.ry() += downNote()->pos().y();
+      return p;
       }
 
 //---------------------------------------------------------
@@ -435,18 +457,34 @@ void Chord::remove(Element* e)
       }
 
 //---------------------------------------------------------
+//   maxHeadWidth
+//---------------------------------------------------------
+qreal Chord::maxHeadWidth()
+      {
+      // determine max head width in chord
+      qreal hw       = 0;
+      for (int i = 0; i < _notes.size(); i++) {
+            qreal t = _notes.at(i)->headWidth();
+            if (t > hw)
+                  hw = t;
+            }
+      return hw;
+      }
+
+//---------------------------------------------------------
 //   addLedgerLine
 ///   Add a ledger line to a chord.
 ///   \arg x          note head position
 ///   \arg staffIdx   determines the y origin
 ///   \arg line       vertical position of line
 ///   \arg lr         extend to left and/or right
+///   \arg hw         max head width in chord
 //---------------------------------------------------------
 
-void Chord::addLedgerLine(qreal x, int staffIdx, int line, int lr, bool visible)
+void Chord::addLedgerLine(qreal x, int staffIdx, int line, int lr, bool visible, qreal hw)
       {
       qreal _spatium = spatium();
-      qreal hw       = upNote()->headWidth();
+
       qreal hw2      = hw * .5;
 
       LedgerLine* h = new LedgerLine(score());
@@ -512,18 +550,21 @@ void Chord::addLedgerLines(qreal x, int move)
                   break;
                   }
             }
+
+      qreal hw = maxHeadWidth();
+
       for (int ni = n - 1; ni >= 0; --ni) {
             const Note* note = _notes[ni];
             int l = note->line();
             if (l >= 0)
                   break;
             for (int i = (uppos+1) & ~1; i < l; i += 2)
-                  addLedgerLine(x, idx, i, ulr, visible);
+                  addLedgerLine(x, idx, i, ulr, visible, hw);
             ulr |= (up() ^ note->mirror()) ? 0x1 : 0x2;
             uppos = l;
             }
       for (int i = (uppos+1) & ~1; i <= -2; i += 2)
-            addLedgerLine(x, idx, i, ulr, visible);
+            addLedgerLine(x, idx, i, ulr, visible, hw);
 
       int downpos = -1000;
       int dlr = 0;
@@ -534,12 +575,12 @@ void Chord::addLedgerLines(qreal x, int move)
             if (l <= 8)
                   break;
             for (int i = downpos & ~1; i > l; i -= 2)
-                  addLedgerLine(x, idx, i, dlr, visible);
+                  addLedgerLine(x, idx, i, dlr, visible, hw);
             dlr |= (up() ^ note->mirror()) ? 0x1 : 0x2;
             downpos = l;
             }
       for (int i = downpos & ~1; i >= 10; i -= 2)
-            addLedgerLine(x, idx, i, dlr, visible);
+            addLedgerLine(x, idx, i, dlr, visible, hw);
       }
 
 //-----------------------------------------------------------------------------
@@ -905,6 +946,14 @@ void Chord::read(XmlReader& e)
                               }
                          _stem->setUserOff(n->userOff() + _stem->userOff());
                         }
+                  }
+            }
+      // hack:
+      if (_notes.size() == 1 && readPos().isNull()) {
+            Note* note = _notes.front();
+            if (!note->readPos().isNull()) {
+                  setReadPos(QPointF(note->readPos().x(), 0.0));
+                  note->setReadPos(QPointF(0.0, note->readPos().y()));
                   }
             }
       }
@@ -1357,7 +1406,6 @@ void Chord::layout()
                   qreal x = stemX - fretWidth*0.5;
                   note->setPos(x, _spatium * tab->physStringToVisual(note->string()) * lineDist);
 //                  note->layout2();              // needed? it is repeated later right before computing bbox
-
                   }
             // horiz. spacing: leave half width at each side of the (potential) stem
             qreal halfHeadWidth = headWidth * 0.5;
@@ -1464,51 +1512,24 @@ void Chord::layout()
             //    - position
             //-----------------------------------------
 
-            qreal stepDistance = _spatium * .5;
-            int stepOffset     = staff()->staffType()->stepOffset();
             int lx = 0.0;
 
             adjustReadPos();
 
-            qreal stemWidth5;
             qreal noteWidth = _notes.size() ? downNote()->headWidth() :
                         symbols[score()->symIdx()][quartheadSym].width(magS());
             qreal stemX = _up ? noteWidth : 0.0;
-            if (stem()) {
-                  stemWidth5 = stem()->lineWidth() * .5;
-                  _stem->rxpos() = _up ? stemX - stemWidth5 : stemWidth5;
-                  }
-            else
-                  stemWidth5 = 0.0;
 
             int n = _notes.size();
             for (int i = 0; i < n; ++i) {
                   Note* note = _notes.at(i);
                   note->layout();
-                  qreal x;
-
-                  qreal hw = note->headWidth();
-
-                  if (note->mirror())
-                        if (_up)
-                              x = stemX - stemWidth5 * 2;
-                        else
-                              x = stemX - hw + stemWidth5 * 2;
-                  else {
-                        if (_up)
-                              x = stemX - hw;
-                        else
-                              x = 0.0;
-                        }
-
-                  note->rypos() = (note->line() + stepOffset) * stepDistance;
-                  note->rxpos() = x;
+                  qreal x = note->rxpos();
 
                   Accidental* accidental = note->accidental();
                   if (accidental) {
-                        // qreal minNoteDistance = score()->styleS(ST_minNoteDistance).val() * _spatium;
-                        // x = accidental->x() + x - minNoteDistance;
-                        x = accidental->x() + note->x();
+                        qreal minNoteDistance = score()->styleS(ST_minNoteDistance).val() * _spatium;
+                        x = accidental->x() + note->x() - minNoteDistance;
                         }
                   if (x < lx)
                         lx = x;
@@ -1612,6 +1633,41 @@ void Chord::layout()
       }
 
 //---------------------------------------------------------
+//   crossMeasureSetup
+//---------------------------------------------------------
+
+void Chord::crossMeasureSetup(bool on)
+      {
+      if (!on) {
+            _crossMeasure = CROSSMEASURE_UNKNOWN;
+            return;
+            }
+      if (_crossMeasure == CROSSMEASURE_UNKNOWN) {
+            int tempCross = CROSSMEASURE_NONE;  // assume no cross-measure modification
+            // if chord has only one note and note is tied forward
+            if(notes().size() == 1 && _notes[0]->tieFor()) {
+                  Chord* tiedChord = _notes[0]->tieFor()->endNote()->chord();
+                  // if tied note belongs to another measure and to a single-note chord
+                  if(tiedChord->measure() != measure() && tiedChord->notes().size() == 1) {
+                        // get total duration
+                        QList<TDuration> durList = toDurationList(
+                                    actualDurationType().fraction() +
+                                    tiedChord->actualDurationType().fraction(), true);
+                        // if duration can be expressed as a single duration
+                        // apply cross-measure modification
+                        if(durList.size() == 1) {
+                              tempCross = CROSSMEASURE_FIRST;
+                              _crossMeasureTDur = durList[0];
+                              }
+                        }
+                  _crossMeasure = tempCross;
+                  tiedChord->setCrossMeasure(tempCross == CROSSMEASURE_FIRST ?
+                              CROSSMEASURE_SECOND : CROSSMEASURE_NONE);
+                  }
+            }
+      }
+
+//---------------------------------------------------------
 //   layoutArpeggio2
 //    called after layout of page
 //---------------------------------------------------------
@@ -1655,9 +1711,6 @@ void Chord::layoutArpeggio2()
                         }
                   }
             }
-//      bool up = _arpeggio->subtype() != ARP_DOWN;
-//      if (!notes.isEmpty())
-//            renderArpeggio(notes, up);
       }
 
 //---------------------------------------------------------
@@ -2045,4 +2098,6 @@ void Chord::setStemSlash(StemSlash* s)
       delete _stemSlash;
       _stemSlash = s;
       }
+
+}
 

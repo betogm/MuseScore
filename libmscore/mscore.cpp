@@ -26,6 +26,8 @@
 #include "jump.h"
 #include "marker.h"
 
+namespace Ms {
+
 qreal MScore::PDPI = 1200;
 qreal MScore::DPI  = 1200;
 qreal MScore::DPMM;
@@ -52,7 +54,7 @@ int     MScore::defaultPlayDuration;
 QString MScore::partStyle;
 QString MScore::lastError;
 bool    MScore::layoutDebug = false;
-int     MScore::division    = 480;
+int     MScore::division    = 480;   // pulses per quarter note (PPQ) // ticks per beat
 int     MScore::sampleRate  = 44100;
 int     MScore::mtcType;
 
@@ -126,11 +128,11 @@ void MScore::init()
 
       lastError           = "";
 
-      layoutBreakColor    = Qt::green;
+      layoutBreakColor    = Qt::gray;
       bgColor.setRgb(0x76, 0x76, 0x6e);
 
       _defaultStyle         = new MStyle();
-      ::initStyle(_defaultStyle);
+      Ms::initStyle(_defaultStyle);
       _baseStyle            = new MStyle(*_defaultStyle);
 
       //
@@ -195,4 +197,6 @@ void MScore::setDefaultStyle(MStyle* s)
       delete _defaultStyle;
       _defaultStyle = s;
       }
+
+}
 

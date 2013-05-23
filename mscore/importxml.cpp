@@ -105,6 +105,8 @@
 #include "libmscore/marker.h"
 #include "importxmlfirstpass.h"
 
+namespace Ms {
+
 //---------------------------------------------------------
 //   local defines for debug output
 //---------------------------------------------------------
@@ -1261,13 +1263,13 @@ static void partGroupStart(MusicXmlPartGroup* (&pgs)[MAX_PART_GROUPS], int n, in
       if (s == "")
             ;  //ignore
       else if (s == "brace")
-            bracketType = BRACKET_AKKOLADE;
+            bracketType = BRACKET_BRACE;
       else if (s == "bracket")
             bracketType = BRACKET_NORMAL;
       else if (s == "line")
             bracketType = BRACKET_NORMAL;
       else if (s == "square")
-            bracketType = BRACKET_NORMAL;
+            bracketType = BRACKET_SQUARE;
       else {
             qDebug("part-group symbol=%s not supported", s.toLatin1().data());
             return;
@@ -3108,7 +3110,7 @@ void MusicXml::xmlAttributes(Measure* measure, int staff, QDomElement e)
                         tuplets.resize(staves * VOICES);
                   Staff* st = part->staff(0);
                   if (st && staves == 2) {
-                        st->setBracket(0, BRACKET_AKKOLADE);
+                        st->setBracket(0, BRACKET_BRACE);
                         st->setBracketSpan(0, 2);
                         st->setBarLineSpan(2); //seems to be default in musicXML
                         }
@@ -5304,3 +5306,5 @@ int MusicXml::xmlClef(QDomElement e, int staffIdx, Measure* measure)
       s->add(clefs);
       return res;
       }
+}
+

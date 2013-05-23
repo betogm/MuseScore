@@ -21,6 +21,8 @@
 #include "page.h"
 #include "mscore.h"
 
+namespace Ms {
+
 MStyle* style;
 
 //  20 points        font design size
@@ -136,6 +138,7 @@ StyleType styleTypes[] = {
       StyleType("genCourtesyKeysig",       ST_BOOL),
       StyleType("genCourtesyClef",         ST_BOOL),
       StyleType("useGermanNoteNames",      ST_BOOL),
+      StyleType("chordsXmlFile",           ST_BOOL),
       StyleType("chordDescriptionFile",    ST_STRING),
       StyleType("concertPitch",            ST_BOOL),            // display transposing instruments in concert pitch
       StyleType("createMultiMeasureRests", ST_BOOL),
@@ -210,6 +213,8 @@ StyleType styleTypes[] = {
       StyleType("tremoloDistance",         ST_SPATIUM),
 
       StyleType("linearStretch",           ST_DOUBLE),
+      StyleType("crossMeasureValues",      ST_BOOL),
+      StyleType("keySigNaturals",          ST_INT)
       };
 
 static const QString ff("FreeSerifMscore");
@@ -332,10 +337,7 @@ void initStyle(MStyle* s)
 
       AS(TextStyle(
          TR( "Chordname"), ff,  12, false, false, false,
-         ALIGN_LEFT | ALIGN_BASELINE, QPointF(), OS, QPointF(), true,
-         Spatium(0.0), Spatium(0.0), 25, QColor(Qt::black), false,      // default params
-         false, QColor(Qt::black), QColor(255, 255, 255, 0),            // default params
-         TextStyle::HIDE_IN_EDITOR));                                   // don't show in Style Editor
+         ALIGN_LEFT | ALIGN_BASELINE, QPointF(), OS, QPointF(), true));
 
       AS(TextStyle(
          TR( "Rehearsal Mark"), ff,  14, true, false, false,
@@ -528,6 +530,7 @@ StyleData::StyleData()
             StyleVal(ST_genCourtesyClef, true),
 
             StyleVal(ST_useGermanNoteNames, false),
+            StyleVal(ST_chordsXmlFile, true),
             StyleVal(ST_chordDescriptionFile, QString("stdchords.xml")),
             StyleVal(ST_concertPitch, false),
             StyleVal(ST_createMultiMeasureRests, false),
@@ -598,7 +601,10 @@ StyleData::StyleData()
             StyleVal(ST_tremoloBoxHeight, Spatium(0.65)),
             StyleVal(ST_tremoloStrokeWidth, Spatium(0.35)),
             StyleVal(ST_tremoloDistance, Spatium(0.8)),
+
             StyleVal(ST_linearStretch, qreal(1.5)),
+            StyleVal(ST_crossMeasureValues, false),
+            StyleVal(ST_keySigNaturals, NAT_NONE),
             };
 
       for (int idx = 0; idx < ST_STYLES; ++idx)
@@ -1141,7 +1147,8 @@ ChordList* StyleData::chordList()  const
       {
       if (_chordList == 0) {
             _chordList = new ChordList();
-            _chordList->read("chords.xml");
+            if (value(ST_chordsXmlFile).toBool())
+                  _chordList->read("chords.xml");
             _chordList->read(value(ST_chordDescriptionFile).toString());
             }
       return _chordList;
@@ -1690,4 +1697,6 @@ void MStyle::setArticulationAnchor(int id, ArticulationAnchor val)
       {
       return d->setArticulationAnchor(id, val);
       }
+
+}
 

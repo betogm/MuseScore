@@ -22,6 +22,8 @@
 #include "fraction.h"
 #include "segmentlist.h"
 
+namespace Ms {
+
 class Xml;
 class Beam;
 class Tuplet;
@@ -196,6 +198,7 @@ class Measure : public MeasureBase {
       Fraction len() const                 { return _len;         }
       Fraction stretchedLen(Staff*) const;
       void setLen(const Fraction& f)       { _len = f;            }
+      // actual length of measure in ticks
       virtual int ticks() const            { return _len.ticks(); }
 
       int size() const                     { return _segments.size();        }
@@ -307,5 +310,7 @@ class Measure : public MeasureBase {
       virtual QVariant propertyDefault(P_ID) const;
       };
 
+
+}     // namespace Ms
 #endif
 

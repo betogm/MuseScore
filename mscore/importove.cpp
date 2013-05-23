@@ -64,6 +64,8 @@
 #include "libmscore/marker.h"
 #include "libmscore/jump.h"
 
+using namespace Ms;
+
 class MeasureToTick {
 public:
 	MeasureToTick();
@@ -376,7 +378,7 @@ void OveToMScore::convertGroups() {
 
 			// brace
 	        if( j == 0 && partStaffCount == 2 ) {
-	        	staff->setBracket(0, BRACKET_AKKOLADE);
+	        	staff->setBracket(0, BRACKET_BRACE);
 	        	staff->setBracketSpan(0, 2);
 	        	staff->setBarLineSpan(2);
 	        }

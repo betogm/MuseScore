@@ -25,6 +25,8 @@
 #include "shortcut.h"
 #include "mscore/importmidi_operations.h"
 
+namespace Ms {
+
 enum SessionStart {
       EMPTY_SESSION, LAST_SESSION, NEW_SESSION, SCORE_SESSION
       };
@@ -90,11 +92,9 @@ struct Preferences {
       QString lPort;          // audio port left
       QString rPort;          // audio port right
       bool showNavigator;
-      bool showMidiImportPanel;
       bool showPlayPanel;
       bool showWebPanel;
       bool showStatusBar;
-//      QPoint playPanelPos;
 
       bool useAlsaAudio;
       bool useJackAudio;
@@ -206,4 +206,6 @@ class ShortcutItem : public QTreeWidgetItem {
 extern Preferences preferences;
 extern QString appStyleSheet();
 extern bool useALSA, useJACK, usePortaudio, usePulseAudio;
+
+} // namespace Ms
 #endif

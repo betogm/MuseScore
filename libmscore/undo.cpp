@@ -71,6 +71,8 @@
 #include "chordline.h"
 #include "tremolo.h"
 
+namespace Ms {
+
 extern Measure* tick2measure(int tick);
 
 //---------------------------------------------------------
@@ -1412,7 +1414,10 @@ RemoveElement::RemoveElement(Element* e)
                   Chord* chord = static_cast<Chord*>(e);
                   foreach(Note* note, chord->notes()) {
                         if (note->tieFor() && note->tieFor()->endNote())
-                              note->tieFor()->endNote()->setTieBack(0);
+//                              note->tieFor()->endNote()->setTieBack(0);
+                              score->undoRemoveElement(note->tieFor());
+                        if (note->tieBack())
+                              score->undoRemoveElement(note->tieBack());
                         }
                   }
             }
@@ -1757,6 +1762,7 @@ void ChangeElement::flip()
             KeySig* ks = static_cast<KeySig*>(newElement);
             if (!ks->generated()) {
                   ks->staff()->setKey(ks->tick(),ks->keySigEvent());
+                  ks->insertIntoKeySigChain();
                   ks->score()->cmdUpdateAccidentals(ks->measure(), ks->staffIdx());
                   // newElement->staff()->setUpdateKeymap(true);
                   }
@@ -3217,4 +3223,6 @@ void ChangeSynthesizerState::flip()
       {
       std::swap(state, score->_synthesizerState);
       }
+
+}
 

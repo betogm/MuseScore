@@ -96,6 +96,8 @@
 #include "libmscore/qzipwriter_p.h"
 #include "libmscore/fret.h"
 
+namespace Ms {
+
 //---------------------------------------------------------
 //   local defines for debug output
 //---------------------------------------------------------
@@ -2622,8 +2624,11 @@ static void partGroupStart(Xml& xml, int number, int bracket)
             case BRACKET_NORMAL:
                   br = "bracket";
                   break;
-            case BRACKET_AKKOLADE:
+            case BRACKET_BRACE:
                   br = "brace";
+                  break;
+            case BRACKET_SQUARE:
+                  br = "square";
                   break;
             default:
                   qDebug("bracket subtype %d not understood\n", bracket);
@@ -4592,4 +4597,5 @@ void ExportMusicXml::harmony(Harmony const* const h, FretDiagram const* const fd
 #endif
       }
 
+}
 

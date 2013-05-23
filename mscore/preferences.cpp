@@ -44,6 +44,8 @@
 #include "fluid/fluid.h"
 #include "pathlistdialog.h"
 
+namespace Ms {
+
 bool useALSA = false, useJACK = false, usePortaudio = false, usePulseAudio = false;
 
 extern bool useFactorySettings;
@@ -114,8 +116,8 @@ void Preferences::init()
       bgWallpaper        = QString();
       fgWallpaper        = ":/data/paper5.png";
       fgColor.setRgb(255, 255, 255);
-      iconHeight         = 25;
-      iconWidth          = 20;
+      iconHeight         = 24;
+      iconWidth          = 30;
 
       enableMidiInput    = true;
       playNotes          = true;
@@ -123,7 +125,6 @@ void Preferences::init()
       rPort              = "";
 
       showNavigator      = true;
-      showMidiImportPanel = false;
       showPlayPanel      = false;
       showWebPanel       = true;
       showStatusBar      = true;
@@ -261,7 +262,6 @@ void Preferences::write()
       s.setValue("lPort",              lPort);
       s.setValue("rPort",              rPort);
       s.setValue("showNavigator",      showNavigator);
-      s.setValue("showMidiImportPanel",      showMidiImportPanel);
       s.setValue("showPlayPanel",      showPlayPanel);
       s.setValue("showWebPanel",       showWebPanel);
       s.setValue("showStatusBar",      showStatusBar);
@@ -413,7 +413,6 @@ void Preferences::read()
       rPort                   = s.value("rPort", rPort).toString();
 
       showNavigator   = s.value("showNavigator", showNavigator).toBool();
-      showMidiImportPanel   = s.value("showMidiImportPanel", showMidiImportPanel).toBool();
       showStatusBar   = s.value("showStatusBar", showStatusBar).toBool();
       showPlayPanel   = s.value("showPlayPanel", showPlayPanel).toBool();
       showWebPanel    = s.value("showWebPanel", showWebPanel).toBool();
@@ -812,7 +811,7 @@ void PreferenceDialog::updateValues()
             }
       checkUpdateStartup->setCurrentIndex(curPeriodIdx);
 
-      if (seq->isRunning()) {
+      if (seq && seq->isRunning()) {
             QList<QString> sl = seq->inputPorts();
             int idx = 0;
             for (QList<QString>::iterator i = sl.begin(); i != sl.end(); ++i, ++idx) {
@@ -830,7 +829,6 @@ void PreferenceDialog::updateValues()
             }
 
       navigatorShow->setChecked(prefs.showNavigator);
-      midiImportShow->setChecked(prefs.showMidiImportPanel);
       playPanelShow->setChecked(prefs.showPlayPanel);
       webPanelShow->setChecked(prefs.showWebPanel);
 
@@ -1262,7 +1260,6 @@ void PreferenceDialog::apply()
             prefs.rPort = jackRPort->currentText();
             }
       prefs.showNavigator      = navigatorShow->isChecked();
-      prefs.showMidiImportPanel      = midiImportShow->isChecked();
       prefs.showPlayPanel      = playPanelShow->isChecked();
       prefs.showWebPanel       = webPanelShow->isChecked();
       prefs.antialiasedDrawing = drawAntialiased->isChecked();
@@ -1278,7 +1275,8 @@ void PreferenceDialog::apply()
          || (prefs.alsaPeriodSize != alsaPeriodSize->currentText().toInt())
          || (prefs.alsaFragments != alsaFragments->value())
             ) {
-            seq->exit();
+            if (seq)
+                  seq->exit();
             prefs.useAlsaAudio       = alsaDriver->isChecked();
             prefs.useJackAudio       = jackDriver->isChecked();
             prefs.usePortaudioAudio  = portaudioDriver->isChecked();
@@ -1290,9 +1288,11 @@ void PreferenceDialog::apply()
             prefs.alsaFragments      = alsaFragments->value();
             preferences = prefs;
             Driver* driver = driverFactory(seq, "");
-            seq->setDriver(driver);
-            if (!seq->init()) {
-                  qDebug("sequencer init failed\n");
+            if (seq) {
+                  seq->setDriver(driver);
+                  if (!seq->init()) {
+                        qDebug("sequencer init failed\n");
+                        }
                   }
             }
 
@@ -1762,7 +1762,7 @@ void Preferences::updatePluginList()
       pluginPathList.append(myPluginsPath);
 
       foreach(QString pluginPath, pluginPathList) {
-            ::updatePluginList(pluginPathList, pluginPath, pluginList);
+            Ms::updatePluginList(pluginPathList, pluginPath, pluginList);
             }
       }
 
@@ -1835,4 +1835,5 @@ void PreferenceDialog::printShortcutsClicked()
             }
       p.end();
       }
+}
 

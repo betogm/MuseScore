@@ -41,6 +41,8 @@
 #include "libmscore/timesig.h"
 #include "libmscore/segment.h"
 
+namespace Ms {
+
 //---------------------------------------------------------
 //   musicalAttribute
 //---------------------------------------------------------
@@ -682,7 +684,7 @@ bool MuseData::read(const QString& name)
                         mpart->insertStaff(staff);
                         score->staves().push_back(staff);
                         if ((staves == 2) && (i == 0)) {
-                              staff->setBracket(0, BRACKET_AKKOLADE);
+                              staff->setBracket(0, BRACKET_BRACE);
                               staff->setBracketSpan(0, 2);
                               }
                         }
@@ -743,4 +745,5 @@ Score::FileError importMuseData(Score* score, const QString& name)
       md.convert();
       return Score::FILE_NO_ERROR;
       }
+}
 

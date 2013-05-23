@@ -13,6 +13,8 @@
 #include "fraction.h"
 #include "mscore.h"
 
+namespace Ms {
+
 //---------------------------------------------------------
 //   gcd
 //    greatest common divisor
@@ -176,7 +178,12 @@ Fraction Fraction::fromTicks(int ticks)
 
 int Fraction::ticks() const
       {
+      // MScore::division - ticks per quarter note
+      // MScore::division * 4 - ticks per whole note
+      // result: rounded (MScore::division * 4 * _numerator * 1.0 / _denominator) value
       return (_numerator * MScore::division * 4 + (_denominator/2)) / _denominator;
       }
 
+
+}
 

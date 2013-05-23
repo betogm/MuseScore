@@ -32,6 +32,8 @@
 #include "updatechecker.h"
 #include "musescoreCore.h"
 
+namespace Ms {
+
 class Shortcut;
 class ScoreView;
 class Element;
@@ -45,6 +47,7 @@ class Mixer;
 class Debugger;
 class MeasureListEditor;
 class Score;
+class Tuplet;
 class PageSettings;
 class PaletteBox;
 class Palette;
@@ -129,6 +132,7 @@ class AboutBoxDialog : public QDialog, Ui::AboutBox {
 
    public:
       AboutBoxDialog();
+
    private slots:
       void copyRevisionToClipboard();
       };
@@ -411,7 +415,6 @@ class MuseScore : public QMainWindow, public MuseScoreCore {
       void preferencesChanged();
       void seqStarted();
       void seqStopped();
-      void closePlayPanel();
       void cmdAppendMeasures();
       void cmdInsertMeasures();
       void magChanged(int);
@@ -449,7 +452,6 @@ class MuseScore : public QMainWindow, public MuseScoreCore {
       void switchPlayMode(int);
       void networkFinished(QNetworkReply*);
       void switchLayoutMode(int);
-      void closePluginCreator();
 
    public slots:
       virtual void cmd(QAction* a);
@@ -549,10 +551,7 @@ class MuseScore : public QMainWindow, public MuseScoreCore {
       QList<LanguageItem>& languages() { return _languages; }
 
       QStringList getOpenScoreNames(QString& dir, const QString& filter, const QString& title);
-      QString getSaveScoreName(const QString& title,
-         QString& name, const QString& filter, QString* selectedFilter);
-      QString getSaveScoreName(const QString& title,
-         QString& name, const QString& filter, QString* selectedFilter, bool selectFolder);
+      QString getSaveScoreName(const QString& title, QString& name, const QString& filter, bool folder = false);
       QString getStyleFilename(bool open, const QString& title = QString());
       QString getFotoFilename(QString& filter, QString *selectedFilter);
       QString getChordStyleFilename(bool open);
@@ -569,7 +568,7 @@ class MuseScore : public QMainWindow, public MuseScoreCore {
       PaletteBox* getPaletteBox();
       void disableCommands(bool val) { inChordEditor = val; }
 
-      void tupletDialog();
+      Tuplet* tupletDialog();
       void selectSimilar(Element*, bool);
       void selectElementDialog(Element* e);
       void transpose();
@@ -658,5 +657,7 @@ extern void convertMidi(Score*, MidiFile* mf);
 
 extern bool saveMxl(Score*, const QString& name);
 extern bool saveXml(Score*, const QString& name);
+
+} // namespace Ms
 #endif
 

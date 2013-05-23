@@ -31,6 +31,8 @@
 #include "mscore.h"
 #include "segment.h"
 
+namespace Ms {
+
 #define MM(x) ((x)/INCH)
 
 const PaperSize paperSizes[] = {
@@ -465,7 +467,7 @@ QString PageFormat::name() const
 //      </page-layout>
 //---------------------------------------------------------
 
-void PageFormat::read(XmlReader& e)
+void PageFormat::read(XmlReader& e, Score* score)
       {
       qreal _oddRightMargin  = 0.0;
       qreal _evenRightMargin = 0.0;
@@ -513,8 +515,11 @@ void PageFormat::read(XmlReader& e)
                   _size.rheight() = e.readDouble() * 0.5 / PPI;
             else if (tag == "page-width")
                   _size.rwidth() = e.readDouble() * .5 / PPI;
-            else if (tag == "page-offset")            // obsolete, moved to Score
-                  e.readElementText();  // score->setPageNumberOffset(val.toInt());
+            else if (tag == "page-offset") {           // obsolete, moved to Score
+                  QString val(e.readElementText());
+                  if(score)
+                        score->setPageNumberOffset(val.toInt());
+                  }
             else
                   e.unknown();
             }
@@ -919,3 +924,6 @@ qreal Page::rm() const
       const PageFormat* pf = _score->pageFormat();
       return ((!pf->twosided() || isOdd()) ? pf->oddRightMargin() : pf->evenRightMargin()) * MScore::DPI;
       }
+
+}
+

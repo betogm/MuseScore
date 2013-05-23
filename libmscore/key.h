@@ -15,6 +15,8 @@
 
 #include "mscore.h"
 
+namespace Ms {
+
 class Xml;
 class Score;
 class XmlReader;
@@ -103,6 +105,7 @@ class KeyList : public std::map<const int, KeySigEvent> {
    public:
       KeyList() {}
       KeySigEvent key(int tick) const;
+      int nextKeyTick(int tick) const;
       void read(XmlReader&, Score*);
       void write(Xml&, const char* name) const;
       };
@@ -110,5 +113,7 @@ class KeyList : public std::map<const int, KeySigEvent> {
 struct Interval;
 extern int transposeKey(int oldKey, const Interval&);
 
+
+}     // namespace Ms
 #endif
 

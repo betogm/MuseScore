@@ -32,6 +32,8 @@
 #include "drumset.h"
 #include "style.h"
 
+namespace Ms {
+
 //---------------------------------------------------------
 //   style114
 //---------------------------------------------------------
@@ -180,7 +182,8 @@ static const StyleVal style114[] = {
       StyleVal(ST_ArpeggioLineWidth, Spatium(.18)),
       StyleVal(ST_ArpeggioHookLen, Spatium(.8)),
       StyleVal(ST_FixMeasureNumbers, 0),
-      StyleVal(ST_FixMeasureWidth, false)
+      StyleVal(ST_FixMeasureWidth, false),
+      StyleVal(ST_keySigNaturals, NAT_BEFORE)
       };
 
 
@@ -342,8 +345,6 @@ Score::FileError Score::read114(XmlReader& e)
                   _synthesizerState.read(e);
             else if (tag == "Spatium")
                   _style.setSpatium (e.readDouble() * MScore::DPMM);
-            else if (tag == "page-offset")
-                  setPageNumberOffset(e.readInt());
             else if (tag == "Division")
                   _fileDivision = e.readInt();
             else if (tag == "showInvisible")
@@ -368,6 +369,8 @@ Score::FileError Score::read114(XmlReader& e)
                   // Change 1.2 Poet to Lyricist
                   if (s.name() == "Poet")
                         s.setName("Lyricist");
+                  if (s.name() == "Lyrics odd lines" || s.name() == "Lyrics even lines")
+                        s.setAlign((s.align() & ~ ALIGN_VMASK) | Align(ALIGN_BASELINE));
 
                   _style.setTextStyle(s);
                   }
@@ -375,7 +378,7 @@ Score::FileError Score::read114(XmlReader& e)
                   if (_layoutMode != LayoutFloat && _layoutMode != LayoutSystem) {
                         PageFormat pf;
                         pf.copy(*pageFormat());
-                        pf.read(e);
+                        pf.read(e, this);
                         setPageFormat(pf);
                         }
                   else
@@ -471,6 +474,8 @@ Score::FileError Score::read114(XmlReader& e)
                   int tick = i.key();
                   ClefType clefId = i.value()._concertClef;
                   Measure* m = tick2measure(tick);
+                  if (!m)
+                        continue;
                   if ((tick == m->tick()) && m->prevMeasure())
                         m = m->prevMeasure();
                   Segment* seg = m->getSegment(Segment::SegClef, tick);
@@ -676,7 +681,7 @@ Score::FileError Score::read114(XmlReader& e)
 
       // create excerpts
       foreach(Excerpt* excerpt, _excerpts) {
-            Score* nscore = ::createExcerpt(excerpt->parts());
+            Score* nscore = Ms::createExcerpt(excerpt->parts());
             if (nscore) {
                   nscore->setParentScore(this);
                   nscore->setName(excerpt->title());
@@ -712,3 +717,6 @@ Score::FileError Score::read114(XmlReader& e)
 
       return FILE_NO_ERROR;
       }
+
+}
+
