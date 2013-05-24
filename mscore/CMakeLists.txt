@@ -97,7 +97,7 @@ QT4_WRAP_CPP (mocs
       inspectorHairpin.h qmlplugin.h palettebox.h workspace.h pluginManager.h
       inspectorJump.h inspectorMarker.h inspectorGlissando.h inspectorNote.h
       paletteBoxButton.h pathlistdialog.h exampleview.h noteGroups.h inspectorTextLine.h
-      importmidi_panel.h importmidi_operations.h
+      importmidi_panel.h importmidi_operations.h scoreviewperformance.h
       ${OMR_MOCS}
       ${SCRIPT_MOCS}
       )
@@ -205,7 +205,7 @@ add_executable ( ${ExecutableName}
       inspectorGlissando.cpp inspectorNote.cpp paletteBoxButton.cpp
       driver.cpp exportmidi.cpp noteGroups.cpp
       pathlistdialog.cpp exampleview.cpp inspectorTextLine.cpp
-      importmidi_panel.cpp importmidi_operations.cpp miconengine.cpp
+      importmidi_panel.cpp importmidi_operations.cpp miconengine.cpp scoreviewperformance.cpp
 
       ${OMR_FILES}
       ${AUDIO}

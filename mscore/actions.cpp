@@ -1915,6 +1915,12 @@ Shortcut Shortcut::sc[] = {
          QT_TRANSLATE_NOOP("action","Piano Keyboard")
          ),
       Shortcut(
+         STATE_NORMAL | STATE_NOTE_ENTRY,
+         0,
+         "toogle-performance",
+         QT_TRANSLATE_NOOP("action","Performance View")
+         ),
+      Shortcut(
          STATE_NORMAL | STATE_NOTE_ENTRY | STATE_EDIT | STATE_LYRICS_EDIT | STATE_PLAY | STATE_FOTO,
          0,
          "media",

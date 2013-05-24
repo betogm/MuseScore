@@ -31,6 +31,7 @@
 #include "singleapp/src/QtSingleApplication"
 #include "updatechecker.h"
 #include "musescoreCore.h"
+#include "scoreviewperformance.h"
 
 namespace Ms {
 
@@ -88,6 +89,7 @@ class MasterSynthesizer;
 class Driver;
 class Seq;
 class ImportMidiPanel;
+class scoreViewPerformance;
 
 struct PluginDescription;
 
@@ -250,6 +252,7 @@ class MuseScore : public QMainWindow, public MuseScoreCore {
       InsertMeasuresDialog* insertMeasuresDialog;
       MasterPalette* masterPalette;
       PluginCreator* pluginCreator;
+      scoreViewPerformance* svp;
 
       QMenu* _fileMenu;
       QMenu* menuEdit;
@@ -391,6 +394,7 @@ class MuseScore : public QMainWindow, public MuseScoreCore {
       void initOsc();
       void editRaster();
       void showPianoKeyboard(bool);
+      void showPerformanceView(bool);
       void showMediaDialog();
       void showAlbumManager();
       void showLayerManager();

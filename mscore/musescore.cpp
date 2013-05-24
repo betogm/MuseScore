@@ -965,6 +965,10 @@ MuseScore::MuseScore()
       a->setCheckable(true);
       menuDisplay->addAction(a);
 
+      a = getAction("toogle-performance");
+      a->setCheckable(true);
+      menuDisplay->addAction(a);
+
       a = getAction("musescore-connect");
       a->setCheckable(true);
       menuDisplay->addAction(a);
@@ -3387,6 +3391,16 @@ void MuseScore::showPianoKeyboard(bool on)
       }
 
 //---------------------------------------------------------
+//   showPerformanceView
+//---------------------------------------------------------
+
+void MuseScore::showPerformanceView(bool on)
+      {
+      svp = new scoreViewPerformance(this, &scoreList);
+      svp->exec();
+      }
+
+//---------------------------------------------------------
 //   showWeb
 //---------------------------------------------------------
 
@@ -4043,6 +4057,8 @@ void MuseScore::cmd(QAction* a, const QString& cmd)
             ;
       else if (cmd == "toogle-piano")
             showPianoKeyboard(a->isChecked());
+      else if (cmd == "toogle-performance")
+            showPerformanceView(a->isChecked());
       else if (cmd == "musescore-connect")
             showWebPanel(a->isChecked());
       else if (cmd == "plugin-creator")

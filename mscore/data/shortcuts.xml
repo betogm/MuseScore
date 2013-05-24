@@ -693,6 +693,10 @@
     <seq>P</seq>
     </SC>
   <SC>
+    <key>toogle-performance</key>
+    <seq>F4</seq>
+    </SC>
+  <SC>
     <key>next-score</key>
     <std>20</std>
     </SC>
