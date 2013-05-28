@@ -3397,7 +3397,8 @@ void MuseScore::showPianoKeyboard(bool on)
 void MuseScore::showPerformanceView(bool on)
       {
       svp = new scoreViewPerformance(this, &scoreList);
-      svp->exec();
+      svp->setWindowModality(Qt::WindowModal);
+      svp->show();
       }
 
 //---------------------------------------------------------
